@@ -696,8 +696,7 @@ function selectTown(feature, marker, fit = false) {
       ${props.population_65plus != null
         ? `<div><b>${fmt(props.population_65plus)}</b><span>aged 65+ (estimated)</span></div>` : ""}
     </div>
-    <div class="pop-shop"><span>Nearest shop</span>${esc(props.nearest_supermarket)}</div>
-    ${note}
+    ${note || `<div class="pop-shop"><span>Nearest shop</span>${esc(props.nearest_supermarket)}</div>`}
     <a class="pop-link" href="explore.html?q=${encodeURIComponent(props.name)}">Find it in the data table &rarr;</a>
   `;
 
