@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Food Desert Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23b5502f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f6f4ee'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="site.css" />
+<style>
+  :root {
+    --ink: #1c2a24;
+    --paper: #f6f4ee;
+    --accent: #b5502f;
+    --line: #d8d3c5;
+    --panel: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font-family: var(--font); color: var(--ink); }
+  #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+
+  #controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    min-width: 220px;
+  }
+  #controls h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .toggle-btn {
+    border: 1px solid var(--line);
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+  }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  /* The status banner sits at the BOTTOM, not the top.
+     At the top it collided with the layer controls on narrow screens --
+     the controls are anchored top-right and the banner was centred, so
+     below roughly 700px wide they overlapped and the banner won.
+     Bottom-centre is clear of the controls at every width, and the
+     bottom offset keeps it above Leaflet's attribution line. */
+  #status {
+    position: absolute;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+    max-width: min(420px, calc(100vw - 32px));
+    text-align: center;
+    /* Purely informational, so it should never swallow a map drag or a
+       click on a marker underneath it. */
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #status.hidden { display: none; }
+  #status.fading { opacity: 0; }
+
+  /* Narrow screens: the attribution wraps to two lines, so lift the
+     banner further, and let the controls shrink rather than crowd it. */
+  @media (max-width: 640px) {
+    #status {
+      bottom: 46px;
+      font-size: 12px;
+      padding: 9px 13px;
+    }
+    #controls {
+      top: 58px;                  /* below the page switcher, which spans the width */
+      right: 10px;
+      padding: 10px 12px;
+      min-width: 0;
+    }
+    #controls h3 { font-size: 12px; margin-bottom: 8px; }
+    .toggle-row { font-size: 12px; gap: 10px; }
+  }
+  /* Size key for the settlement circles, drawn by the script from the same
+     function that sizes the markers, so the two cannot disagree. */
+  #size-legend { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; }
+  #size-legend h3 { border: 0; padding: 0; margin-bottom: 8px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 12px; margin: 4px 0; }
+  .legend-swatch { flex: none; display: flex; justify-content: center; }
+  .legend-swatch span {
+    display: block;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 1.5px solid #5c4326;
+    opacity: 0.85;
+  }
+  .legend-note { font-size: 11px; color: #6b6558; margin-top: 6px; max-width: 200px; }
+  @media (max-width: 640px) { #size-legend { display: none; } }
+  /* --- Intro card: what the dots mean, for a first-time visitor ------------ */
+  #intro {
+    position: absolute; top: 62px; left: 16px; z-index: 1000;
+    width: 300px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    font-size: 13px; line-height: 1.5; color: #4a524c;
+  }
+  #intro[hidden] { display: none; }
+  #intro h1 { font-size: 18px; line-height: 1.3; color: var(--ink); margin: 0 0 12px; letter-spacing: -0.01em; }
+  #intro p { margin: 0 0 12px; }
+  /* The two headline numbers: the first thing a visitor should take in. */
+  .intro-stats { display: grid; gap: 8px; margin: 0 0 8px; }
+  .intro-stats[hidden] { display: none; }
+  .intro-stats b { display: block; font-size: 34px; line-height: 1.05; font-weight: 700;
+                   color: var(--accent); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .intro-stats span { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .intro-line { font-size: 14px; color: var(--ink); font-weight: 600; }
+  #intro a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  #intro a:hover { text-decoration: underline; }
+  #intro-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border: 0; border-radius: 6px;
+    background: transparent; color: #6b6558; font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  #intro-close:hover { background: var(--paper); color: var(--ink); }
+  @media (max-width: 640px) { #intro { display: none; } }
+
+  /* --- Settlement popup ---------------------------------------------------- */
+  .leaflet-popup-content-wrapper { border-radius: 12px; }
+  .leaflet-popup-content { margin: 14px 16px; font-family: var(--font); }
+  .pop-title { font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.25; padding-right: 12px; }
+  .pop-sub { font-size: 12px; color: #6b6558; margin-top: 2px; }
+  .pop-figure { margin: 12px 0 10px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .pop-km { font-size: 30px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; line-height: 1; }
+  .pop-unit { font-size: 15px; font-weight: 600; color: var(--accent); }
+  .pop-caption { font-size: 12px; color: #4a524c; flex-basis: 100%; }
+  .pop-stats { display: flex; gap: 20px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .pop-stats b { display: block; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .pop-stats span { font-size: 11px; color: #6b6558; }
+  .pop-shop { font-size: 12px; color: #4a524c; margin-top: 10px; }
+  .pop-shop span { display: block; font-size: 11px; color: #6b6558; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pop-note { margin-top: 8px; padding: 7px 9px; border-radius: 6px; background: #fff3cd;
+              font-size: 11.5px; line-height: 1.4; color: #5c4a14; }
+  .pop-link { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600;
+              color: var(--accent) !important; text-decoration: none; }
+  .pop-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<nav class="site-nav" aria-label="Pages">
+  <a href="index.html" aria-current="page">Map</a>
+  <a href="summary.html">Summary</a>
+  <a href="explore.html">Explore data</a>
+</nav>
+
+<aside id="intro" aria-label="About this map" hidden>
+  <button type="button" id="intro-close" aria-label="Hide this introduction">&times;</button>
+  <h1>Food Deserts in Italy</h1>
+  <div class="intro-stats" id="intro-stats" hidden>
+    <div><b id="intro-people"></b><span>people</span></div>
+    <div><b id="intro-places"></b><span>towns and villages</span></div>
+  </div>
+  <p class="intro-line" id="intro-line">Every dot is a town or village more than a 3&nbsp;km walk from the nearest supermarket.</p>
+  <a href="summary.html">See the results &rarr;</a>
+</aside>
+
+<div id="status">Loading map data&hellip;</div>
+
+<div id="controls">
+  <h3>Layers</h3>
+  <div class="toggle-row">
+    <span>Public transport</span>
+    <button id="btn-transit" class="toggle-btn">Show</button>
+  </div>
+  <div class="toggle-row">
+    <span>Cycling lanes</span>
+    <button id="btn-cycling" class="toggle-btn">Show</button>
+  </div>
+  <div id="size-legend">
+    <h3>Settlements</h3>
+    <div id="legend-rows"></div>
+    <div class="legend-note">Zoom in to see circles sized by type.</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ---------------------------------------------------------------------
+// DATA SOURCES
+// ---------------------------------------------------------------------
+// Paths are relative to this file. Both `python run.py serve` and GitHub
+// Pages serve docs/ as the web root, so "data/x.geojson" resolves correctly
+// in either environment with no switching.
+//
+// The ?_= cache-buster is not cosmetic: GitHub Pages sets long cache headers,
+// so without it a visitor who has seen the map before may keep getting the
+// previous data for hours after `run.py publish`.
+const CACHE_BUST = "?_=" + Date.now();
+const TOWNS_GEOJSON_URL  = "data/towns.geojson" + CACHE_BUST;
+const ROUTES_GEOJSON_URL = "data/routes.geojson" + CACHE_BUST;
+const META_URL           = "data/meta.json" + CACHE_BUST;
+
+// ---------------------------------------------------------------------
+// MAP INITIALIZATION
+// ---------------------------------------------------------------------
+// Nothing here names a region. The map opens on Italy, then fits itself to
+// the study area described in data/meta.json -- written by the pipeline --
+// and stops the user panning far outside it. The same page therefore serves
+// a three-region run and a national one unchanged.
+const ITALY_BOUNDS = L.latLngBounds([35.4, 6.6], [47.1, 18.6]);
+
+const map = L.map('map', {
+  zoomControl: false,          // added bottom-right below: the page switcher owns top-left
+  maxBoundsViscosity: 1.0
+}).fitBounds(ITALY_BOUNDS);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+function applyStudyArea(bounds) {
+  map.fitBounds(bounds);
+  const limit = bounds.pad(0.15);
+  map.setMaxBounds(limit);
+  map.setMinZoom(map.getBoundsZoom(limit));
+}
+
+L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  maxNativeZoom: 18,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+             + '&middot; tiles by <a href="https://www.hotosm.org/">HOT</a> '
+             + '&middot; population: <a href="https://www.istat.it">ISTAT</a> '
+             + '&middot; routing: <a href="http://project-osrm.org/">OSRM</a>'
+}).addTo(map);
+
+// All LINES -- both overlays and the selected route -- are drawn on one
+// canvas in their own pane, below the town markers and ignoring the mouse.
+//   * Canvas, because a dense city can put tens of thousands of cycleway
+//     segments in view, and one SVG element per segment makes panning crawl.
+//   * One shared canvas, because the stacking rule below (cycling lanes on
+//     top of the route) only works between lines drawn by the same renderer.
+//   * Below the markers and click-through, because a canvas covers the whole
+//     map and would otherwise swallow clicks meant for the towns.
+map.createPane('lines');
+map.getPane('lines').style.zIndex = 350;          // markers sit at 400
+map.getPane('lines').style.pointerEvents = 'none';
+const lineRenderer = L.canvas({ pane: 'lines' });
+const LINE_OPTIONS = { pane: 'lines', renderer: lineRenderer, interactive: false };
+
+const townsLayer = L.layerGroup().addTo(map);
+
+let routesIndex = {};
+const markersById = {};
+
+// Other pages link to one settlement as index.html#s=<settlement_id>: the map
+// zooms to it and opens it once the markers exist. Runs after the study area
+// is framed, or the framing would move the view straight back out.
+function focusFromHash() {
+  const id = new URLSearchParams(location.hash.slice(1)).get("s");
+  const hit = id && markersById[id];
+  if (!hit) {
+    if (id) setStatus("That settlement is not on the map: it may be flagged for review, "
+                      + "which keeps it off the map but in the data.", true);
+    return;
+  }
+  map.setView(hit.marker.getLatLng(), 13);   // until the route is known
+  selectTown(hit.feature, hit.marker, true);
+}
+window.addEventListener("hashchange", focusFromHash);
+
+// A visible status banner. Previously load failures went only to the browser
+// console, so a visitor hitting an empty or missing data folder just saw a
+// blank map with no indication anything had gone wrong.
+const statusEl = document.getElementById('status');
+let statusTimer = null;
+
+// Success messages are useful on arrival and clutter thereafter, so they
+// fade out on their own. Errors do NOT -- if the data failed to load, the
+// visitor needs that on screen for as long as the problem exists.
+const STATUS_AUTO_HIDE_MS = 9000;
+
+function setStatus(message, isError) {
+  clearTimeout(statusTimer);
+  statusEl.classList.remove('fading');
+
+  if (!message) { statusEl.classList.add('hidden'); return; }
+
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = message;
+  statusEl.style.borderLeftColor = isError ? "#b5502f" : "#2f7d4f";
+
+  if (!isError) {
+    statusTimer = setTimeout(() => {
+      statusEl.classList.add('fading');
+      setTimeout(() => statusEl.classList.add('hidden'), 400);
+    }, STATUS_AUTO_HIDE_MS);
+  }
+}
+
+function loadJSON(url, label) {
+  return fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    })
+    .catch(err => {
+      console.error(`Failed to load ${label}:`, err);
+      setStatus(`Could not load ${label}. If you are running this locally, `
+              + `check that "python run.py publish" has been run.`, true);
+      return null;
+    });
+}
+let selectedRouteLayer = null;
+let selectedMarker = null;
+let selectedFeature = null;
+let pendingFit = false;       // frame the route once it loads (see focusFromHash)
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = n => n == null ? "N/A" : n.toLocaleString("en-GB");
+
+// ---------------------------------------------------------------------
+// INTRO CARD
+// ---------------------------------------------------------------------
+// Shown until the visitor closes it; that choice is remembered in this
+// browser. Storage can be unavailable (private windows, blocked site data),
+// in which case the card simply shows again next time.
+const INTRO_KEY = "food-desert-intro-hidden";
+const introEl = document.getElementById("intro");
+let introHidden = false;
+try { introHidden = localStorage.getItem(INTRO_KEY) === "1"; } catch (e) { /* no storage */ }
+introEl.hidden = introHidden || location.hash.includes("s=");   // a deep link wants the map clear
+document.getElementById("intro-close").addEventListener("click", () => {
+  introEl.hidden = true;
+  try { localStorage.setItem(INTRO_KEY, "1"); } catch (e) { /* no storage */ }
+});
+// The headline count comes from the published summary, when there is one.
+fetch("data/summary.json" + CACHE_BUST)
+  .then(r => r.ok ? r.json() : null)
+  .then(s => {
+    if (!s) return;   // no summary published: the card keeps its sentence alone
+    document.getElementById("intro-people").textContent = fmt(s.residents_affected);
+    document.getElementById("intro-places").textContent = fmt(s.confirmed);
+    document.getElementById("intro-line").innerHTML =
+      `are more than a ${s.distance_threshold_km}&nbsp;km walk from the nearest supermarket.`;
+    document.getElementById("intro-stats").hidden = false;
+  })
+  .catch(() => {});
+
+const COLOR_TOWN = "#b5502f";
+const COLOR_SELECTED = "#e8b84b";
+const COLOR_OUTLINE = "#5c4326";
+
+// ---------------------------------------------------------------------
+// MARKER SIZE
+// ---------------------------------------------------------------------
+// Zoomed out, thousands of settlements overlap, so every one is drawn as the
+// same small dot: at country scale the map shows WHERE, not how many. From
+// CIRCLE_MIN_ZOOM (about one region in view) they become circles in three
+// sizes by what kind of place they are: a comune's main town, or one of its
+// frazioni with 100+ residents, or under 100.
+const CIRCLE_MIN_ZOOM = 9;
+const DOT_RADIUS = 1.5;
+const SELECTED_EXTRA = 3;
+const SMALL_FRAZIONE = 100;     // residents; below this a frazione is drawn smallest
+
+// Largest first: that is also the drawing order, so small circles sit on top
+// of big ones and stay clickable where they overlap.
+const SIZE_CLASSES = [
+  { label: "Main town of a comune", radius: 10,  test: p => p.is_main_town },
+  { label: `Frazione, ${SMALL_FRAZIONE}+ residents`, radius: 6.5,
+    test: p => (p.population || 0) >= SMALL_FRAZIONE },
+  { label: `Frazione, under ${SMALL_FRAZIONE} residents`, radius: 4, test: () => true },
+];
+const sizeClass = props => SIZE_CLASSES.findIndex(c => c.test(props));
+const asDots = () => map.getZoom() < CIRCLE_MIN_ZOOM;
+
+function markerStyle(props, selected) {
+  if (asDots()) {
+    return {
+      radius: DOT_RADIUS + (selected ? SELECTED_EXTRA : 0),
+      weight: selected ? 1.5 : 0,
+      fillColor: selected ? COLOR_SELECTED : COLOR_TOWN,
+      fillOpacity: 0.85,
+    };
+  }
+  return {
+    radius: SIZE_CLASSES[sizeClass(props)].radius + (selected ? SELECTED_EXTRA : 0),
+    weight: 1.5,
+    fillColor: selected ? COLOR_SELECTED : COLOR_TOWN,
+    fillOpacity: 0.75,
+  };
+}
+
+function restyleMarkers() {
+  townsLayer.eachLayer(m => m.setStyle(markerStyle(m.props, m === selectedMarker)));
+}
+map.on('zoomend', restyleMarkers);
+
+// The size key, drawn from the same classes that size the markers.
+document.getElementById('legend-rows').innerHTML = SIZE_CLASSES.map(c => {
+  const d = 2 * c.radius, box = 2 * SIZE_CLASSES[0].radius;
+  return `<div class="legend-row">
+      <div class="legend-swatch" style="width:${box}px">
+        <span style="width:${d}px;height:${d}px"></span></div>
+      ${c.label}</div>`;
+}).join("");
+
+// ---------------------------------------------------------------------
+// STUDY AREA
+// ---------------------------------------------------------------------
+// Optional: data published before meta.json existed has none, in which case
+// the map fits itself to the towns instead (see below). Resolves to whether
+// the study area was applied.
+const studyAreaApplied = fetch(META_URL)
+  .then(r => r.ok ? r.json() : null)
+  .then(meta => {
+    if (!meta) return false;
+    const [w, s, e, n] = meta.bbox;
+    applyStudyArea(L.latLngBounds([s, w], [n, e]));
+    document.title = `Food Desert Map — ${meta.label}`;
+    return true;
+  })
+  .catch(() => false);
+
+// A route and a settlement are matched on ISTAT's locality code: names repeat
+// across Italy (dozens of "San Giorgio"), codes do not. The comune code and
+// the name are fallbacks for data published before settlements were analysed.
+const townKey = props => props.settlement_id ?? props.istat_code ?? props.town_name ?? props.name;
+
+// Settlement markers go on a canvas too: nationally there are thousands, and
+// one SVG element each makes panning crawl. Canvas markers stay clickable.
+const markerRenderer = L.canvas({ padding: 0.5 });
+
+// ---------------------------------------------------------------------
+// LOAD TOWNS
+// ---------------------------------------------------------------------
+loadJSON(TOWNS_GEOJSON_URL, "towns.geojson")
+  .then(data => {
+    if (!data) return;
+    if (!data.features.length) {
+      setStatus("No towns in the published dataset.", true);
+      return;
+    }
+    const unit = data.features[0].properties.settlement_id ? "settlements" : "comuni";
+    setStatus(`${data.features.length.toLocaleString()} underserved ${unit} — click a marker for details.`);
+    // Largest size class first, so smaller circles are drawn on top and stay
+    // clickable where they overlap a big one.
+    const features = [...data.features].sort(
+      (a, b) => sizeClass(a.properties) - sizeClass(b.properties));
+    features.forEach(feature => {
+      const [lon, lat] = feature.geometry.coordinates;
+
+      const marker = L.circleMarker([lat, lon], {
+        renderer: markerRenderer,
+        color: COLOR_OUTLINE,
+        ...markerStyle(feature.properties, false),
+      });
+      marker.props = feature.properties;
+
+      marker.on('click', () => selectTown(feature, marker));
+      markersById[townKey(feature.properties)] = { feature, marker };
+      marker.addTo(townsLayer);
+    });
+
+    // Fallback when there is no meta.json: frame the towns themselves.
+    studyAreaApplied.then(applied => {
+      if (!applied) applyStudyArea(L.featureGroup(townsLayer.getLayers()).getBounds());
+      focusFromHash();
+    });
+  });
+
+// ---------------------------------------------------------------------
+// LOAD PER-TOWN ROUTES
+// ---------------------------------------------------------------------
+loadJSON(ROUTES_GEOJSON_URL, "routes.geojson")
+  .then(data => {
+    if (!data) return;
+    data.features.forEach(f => {
+      routesIndex[townKey(f.properties)] = f;
+    });
+    // A settlement opened before the routes arrived (from a link, or a quick
+    // click) is shown again now, with its route.
+    if (selectedFeature && !selectedRouteLayer) selectTown(selectedFeature, selectedMarker, pendingFit);
+  });
+
+// ---------------------------------------------------------------------
+// OVERLAYS, LOADED A GRID CELL AT A TIME
+// ---------------------------------------------------------------------
+// Nationally, the cycling and transport layers are around 100 MB between
+// them -- far too much to fetch when the page opens. The pipeline splits each
+// into a grid of small GeoJSON files named "<x>_<y>.geojson", with
+// x = floor(lon / cell_deg) and y = floor(lat / cell_deg), plus a
+// manifest.json listing the cells that contain anything. Only the cells under
+// the current view are fetched, and only once the layer is switched on and the
+// map is zoomed in far enough to draw it.
+
+// Parsed cells kept in memory once scrolled out of view, so panning back does
+// not refetch them. Beyond this, the least recently loaded are dropped.
+const MAX_CACHED_CELLS = 150;
+
+function gridOverlay({ dir, label, style, minZoom, button, onCellsAdded }) {
+  const group = L.layerGroup();
+  const cells = new Map();          // key -> Promise<L.GeoJSON | null>
+  let manifest = null;
+  let manifestRequest = null;
+  let enabled = false;
+  let wanted = new Set();
+  let generation = 0;               // bumped by every refresh; see below
+
+  function loadManifest() {
+    manifestRequest = manifestRequest || loadJSON(`data/${dir}/manifest.json${CACHE_BUST}`, `${label} index`)
+      .then(m => { manifest = m && { cellDeg: m.cell_deg, cells: new Set(m.cells) }; });
+    return manifestRequest;
+  }
+
+  function cellsInView() {
+    const b = map.getBounds(), d = manifest.cellDeg, keys = new Set();
+    for (let x = Math.floor(b.getWest() / d); x <= Math.floor(b.getEast() / d); x++) {
+      for (let y = Math.floor(b.getSouth() / d); y <= Math.floor(b.getNorth() / d); y++) {
+        const key = `${x}_${y}`;
+        if (manifest.cells.has(key)) keys.add(key);
+      }
+    }
+    return keys;
+  }
+
+  function loadCell(key) {
+    if (!cells.has(key)) {
+      cells.set(key, loadJSON(`data/${dir}/${key}.geojson${CACHE_BUST}`, `${label} (cell ${key})`)
+        .then(data => data && L.geoJSON(data, { ...LINE_OPTIONS, style })));
+    }
+    return cells.get(key);
+  }
+
+  function evictOldCells() {
+    for (const key of cells.keys()) {
+      if (cells.size <= MAX_CACHED_CELLS) break;
+      if (!wanted.has(key)) cells.delete(key);
+    }
+  }
+
+  async function refresh() {
+    // The view can change while the manifest downloads. Without this check a
+    // refresh begun zoomed in would resume against a zoomed-out view and
+    // fetch every cell in the country; a newer refresh supersedes it instead.
+    const mine = ++generation;
+    const zoomedIn = map.getZoom() >= minZoom;
+    button.textContent = !enabled ? "Show" : zoomedIn ? "Hide" : "Zoom to see";
+    if (!enabled || !zoomedIn) {
+      wanted = new Set();           // so cells still downloading are not added
+      map.removeLayer(group);
+      return;
+    }
+    await loadManifest();
+    if (mine !== generation || !manifest) return;
+    group.addTo(map);
+
+    wanted = cellsInView();
+    const current = wanted;
+    group.eachLayer(layer => { if (!current.has(layer.cellKey)) group.removeLayer(layer); });
+
+    await Promise.all([...current].map(key => loadCell(key).then(layer => {
+      // The view may have moved on while this cell downloaded.
+      if (layer && wanted.has(key) && !group.hasLayer(layer)) {
+        layer.cellKey = key;
+        group.addLayer(layer);
+      }
+    })));
+    evictOldCells();
+    onCellsAdded && onCellsAdded();
+  }
+
+  map.on('moveend', refresh);
+  button.addEventListener('click', () => {
+    enabled = !enabled;
+    button.classList.toggle('active', enabled);
+    refresh();
+  });
+
+  return group;
+}
+
+// Drawing order, bottom to top: transit, the selected route, cycling lanes.
+// Cycling lanes MUST sit on top of the route, so it is visually obvious by
+// eye whether a cycling lane runs along that specific route. Newly loaded
+// cells are drawn last, so the order is re-asserted every time some arrive.
+function restackLines() {
+  if (selectedRouteLayer) selectedRouteLayer.bringToFront();
+  cyclingLayer.eachLayer(l => l.bringToFront());
+}
+
+// Public transport lines are not rendered at lower zoom levels.
+const transitLayer = gridOverlay({
+  dir: "public_transport",
+  label: "public transport",
+  style: { color: "#2f5f9e", weight: 2, opacity: 0.6 },
+  minZoom: 10,
+  button: document.getElementById('btn-transit'),
+  onCellsAdded: restackLines,
+});
+
+// Cycling lanes turn into blobs at low zoom levels, so they start at 14.
+const cyclingLayer = gridOverlay({
+  dir: "cycling_lanes",
+  label: "cycling lanes",
+  style: { color: "#2f7d4f", weight: 1.5, opacity: 0.75, dashArray: "4 3" },
+  minZoom: 14,
+  button: document.getElementById('btn-cycling'),
+  onCellsAdded: restackLines,
+});
+
+// ---------------------------------------------------------------------
+// TOWN SELECTION: popup + route highlight
+// ---------------------------------------------------------------------
+// fit: zoom to show the whole route -- for links from other pages, where the
+// visitor has not chosen a view yet. A click keeps the view the visitor has.
+function selectTown(feature, marker, fit = false) {
+  const props = feature.properties;
+  setStatus(null);
+
+  if (selectedRouteLayer) {
+    map.removeLayer(selectedRouteLayer);
+    selectedRouteLayer = null;
+  }
+  const previous = selectedMarker;
+  selectedMarker = marker;
+  selectedFeature = feature;
+  if (previous) previous.setStyle(markerStyle(previous.props, false));
+  marker.setStyle(markerStyle(marker.props, true));
+  marker.bringToFront();
+
+  const routeFeature = routesIndex[townKey(props)];
+  if (routeFeature) {
+    selectedRouteLayer = L.geoJSON(routeFeature, {
+      ...LINE_OPTIONS,
+      style: { color: COLOR_SELECTED, weight: 5, opacity: 0.95 }
+    }).addTo(map);
+  }
+  pendingFit = fit && !selectedRouteLayer;
+  if (fit && selectedRouteLayer) {
+    // Room on every side for the popup, which opens above the marker and can
+    // sit anywhere along the route's edge.
+    map.fitBounds(selectedRouteLayer.getBounds().extend(marker.getLatLng()),
+                  { paddingTopLeft: [180, 330], paddingBottomRight: [180, 60], maxZoom: 15 });
+  }
+  restackLines();
+
+  // "Main town of its comune" or "Frazione of <comune>", then where it is.
+  // Data published before settlements were analysed has neither field.
+  const kind = props.is_main_town ? "Main town of its comune"
+    : props.comune ? `Frazione of ${esc(props.comune)}` : "";
+  const place = [props.province, props.region].filter(Boolean).map(esc).join(", ");
+  const note = props.nearest_is_inferred
+    ? `<div class="pop-note">This store is in ISTAT's business register but not on OpenStreetMap,
+       so its location is inferred: the route ends at the centre of the village it was placed in.</div>` : "";
+  const popupHtml = `
+    <div class="pop-title">${esc(props.name)}</div>
+    <div class="pop-sub">${[kind, place].filter(Boolean).join(" &middot; ")}</div>
+    <div class="pop-figure">
+      <span class="pop-km">${Number(props.distance_km).toFixed(1)}</span><span class="pop-unit">km</span>
+      <span class="pop-caption">walk to the nearest supermarket or grocery store</span>
+    </div>
+    <div class="pop-stats">
+      <div><b>${fmt(props.population)}</b><span>residents</span></div>
+      ${props.population_65plus != null
+        ? `<div><b>${fmt(props.population_65plus)}</b><span>aged 65+ (estimated)</span></div>` : ""}
+    </div>
+    <div class="pop-shop"><span>Nearest shop</span>${esc(props.nearest_supermarket)}</div>
+    ${note}
+    <a class="pop-link" href="explore.html?q=${encodeURIComponent(props.name)}">Find it in the data table &rarr;</a>
+  `;
+
+  marker.bindPopup(popupHtml, { maxWidth: 290, minWidth: 240 }).openPopup();
+}
+</script>
+</body>
+</html>

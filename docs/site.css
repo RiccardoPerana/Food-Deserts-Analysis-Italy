@@ -1,0 +1,110 @@
+/* Shared by the map, summary and explorer pages: the typeface, the page
+   switcher, and the layout of the two text pages. The map keeps its own
+   styles inline. Inter is loaded by each page; the system stack stands in
+   until it arrives, or if it cannot be fetched. */
+:root {
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ink: #1c2a24;
+  --ink-2: #4a524c;
+  --muted: #6b6558;
+  --paper: #f6f4ee;
+  --surface: #fcfcfb;
+  --accent: #b5502f;
+  --accent-soft: #f1ddd5;
+  --line: #d8d3c5;
+  --grid: #e7e3d8;
+  --panel: #ffffff;
+}
+
+/* --- Page switcher ------------------------------------------------------ */
+/* Pinned to the same corner on every page, so switching pages never moves it:
+   fixed, not part of each page's layout. The map moves its zoom buttons out
+   of this corner to make room. */
+.site-nav {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 1100;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  font: 500 13px/1 var(--font);
+}
+.site-nav a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-nav a:hover { background: var(--paper); }
+.site-nav a[aria-current="page"] { background: var(--accent); color: #fff; }
+.site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .site-nav { left: 10px; top: 10px; }
+  .site-nav a { padding: 7px 11px; }
+}
+
+/* --- Text pages ------------------------------------------------------------ */
+body.page {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.6 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+  box-sizing: border-box;
+  height: 60px;                         /* the pinned switcher is centred in it */
+  padding: 0 24px;
+  background: rgba(246, 244, 238, 0.94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(4px);
+}
+.page-header .brand { font-weight: 700; font-size: 15px; }
+main { max-width: 1080px; margin: 0 auto; padding: 28px 24px 64px; }
+h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.015em; }
+h2 { font-size: 19px; margin: 44px 0 4px; letter-spacing: -0.005em; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+           color: var(--accent); margin: 0 0 6px; }
+.lede { color: var(--ink-2); margin: 0 0 24px; max-width: 70ch; }
+.sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+a { color: var(--accent); }
+.button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px;
+  background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px;
+}
+.button:hover { background: #9d4427; }
+.button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* --- Footer ----------------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 13px;
+}
+.site-footer .inner {
+  max-width: 1080px; margin: 0 auto; padding: 22px 24px 32px;
+  display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between;
+}
+.site-footer a { color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 640px) {
+  main { padding: 20px 16px 48px; }
+  .page-header { padding: 0 16px; height: 56px; }
+  .page-header .brand { display: none; }   /* the switcher needs the width */
+  h1 { font-size: 22px; }
+}

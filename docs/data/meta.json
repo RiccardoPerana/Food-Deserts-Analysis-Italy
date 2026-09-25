@@ -1,0 +1,13 @@
+{
+  "label": "Italy",
+  "bbox": [
+    6.6273,
+    35.493,
+    18.5205,
+    47.0921
+  ],
+  "towns_evaluated": 7894,
+  "settlements_evaluated": 21708,
+  "distance_threshold_km": 3.0,
+  "generated": "2026-09-25"
+}

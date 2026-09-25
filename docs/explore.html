@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Food Deserts — Explore the data</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23b5502f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f6f4ee'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="site.css" />
+<style>
+  main { max-width: 1280px; }
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .filters label.check { flex-direction: row; align-items: center; gap: 6px; color: var(--ink); font-size: 13px; }
+  .filters input[type="search"], .filters select {
+    font: inherit; font-size: 13px; color: var(--ink);
+    padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+    min-width: 170px;
+  }
+  .filters input[type="search"] { min-width: 230px; }
+  .filters .spacer { flex: 1; }
+  .btn {
+    font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--ink); text-decoration: none;
+    display: inline-block;
+  }
+  .btn:hover { border-color: var(--accent); }
+
+  .status-line { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+                 font-size: 13px; color: var(--ink-2); margin: 4px 2px 10px; }
+
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+  .wrap { white-space: normal; display: inline-block; min-width: 150px; max-width: 210px; }
+  thead th {
+    position: sticky; top: 0; background: var(--panel); z-index: 1;
+    color: var(--muted); font-weight: 600; font-size: 12px;
+  }
+  th button {
+    all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center;
+  }
+  th button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  th[aria-sort] button { color: var(--ink); }
+  th.num button { flex-direction: row-reverse; }
+  tbody tr:hover { background: #faf8f3; }
+  tr.flagged td { background: #fff3cd; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px;
+         background: var(--paper); border: 1px solid var(--line); color: var(--ink-2); margin-left: 4px; }
+  .tag.flag { background: #fff3cd; border-color: #e6cf8b; }
+
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; font-size: 13px; }
+  .pager button:disabled { opacity: 0.4; cursor: default; }
+  #error { color: #9d3a1f; }
+</style>
+</head>
+<body class="page">
+
+<header class="page-header">
+  <span class="brand">Food deserts in Italy</span>
+  <nav class="site-nav" aria-label="Pages">
+    <a href="index.html">Map</a>
+    <a href="summary.html">Summary</a>
+    <a href="explore.html" aria-current="page">Explore data</a>
+  </nav>
+</header>
+
+<main>
+  <p class="eyebrow">All results</p>
+  <h1>Explore the data</h1>
+  <p class="lede">Every town and village more than a 3 km walk from the nearest supermarket, as in the
+    downloadable spreadsheet. Rows in amber are flagged for review: walks of 10 km or more, which
+    are checked by hand before being counted.</p>
+  <p id="error" hidden></p>
+
+  <form class="card filters" id="filters" onsubmit="return false">
+    <label>Search
+      <input type="search" id="q" placeholder="Settlement or comune" autocomplete="off">
+    </label>
+    <label>Region <select id="region"><option value="">All regions</option></select></label>
+    <label>Province <select id="province"><option value="">All provinces</option></select></label>
+    <label class="check"><input type="checkbox" id="main-only"> Main towns only</label>
+    <label class="check"><input type="checkbox" id="inferred-only"> Nearest store inferred</label>
+    <label class="check"><input type="checkbox" id="show-flagged" checked> Include flagged</label>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="csv">Download view (CSV)</button>
+    <a class="btn" href="data/food_desert_towns.xlsx" download>Full spreadsheet (.xlsx)</a>
+  </form>
+
+  <div class="status-line"><span id="count">Loading&hellip;</span><span id="sums"></span></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+  <div class="pager">
+    <button type="button" class="btn" id="prev">&larr; Previous</button>
+    <span id="page"></span>
+    <button type="button" class="btn" id="next">Next &rarr;</button>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <span>Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL)
+      &middot; population and business data &copy; <a href="https://www.istat.it">ISTAT</a> (CC BY 4.0)
+      &middot; routing by <a href="http://project-osrm.org/">OSRM</a></span>
+    <span><a href="https://github.com/RiccardoPerana/Food-Desert-Analysis-North-Eastern-Italy">Source code and method</a> &middot; MIT licence</span>
+  </div>
+</footer>
+
+<script>
+const PAGE_SIZE = 50;
+const fmt = n => n == null ? "" : n.toLocaleString("en-GB");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// Accent- and case-insensitive search: "Bevadoro" and "bevadoro", "Pàlu" and "Palu".
+const fold = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// key, header, numeric?, cell renderer (defaults to the raw value)
+const COLUMNS = [
+  ["name", "Settlement", false, r => `<strong>${esc(r.name)}</strong>${r.is_main_town ? '<span class="tag">main town</span>' : ""}${r.flagged_for_review ? '<span class="tag flag">flagged</span>' : ""}`],
+  ["comune", "Comune", false],
+  ["province", "Province", false],
+  ["region", "Region", false],
+  ["population", "Residents", true, r => fmt(r.population)],
+  ["population_65plus", "65+ (est.)", true, r => fmt(r.population_65plus)],
+  ["distance_km", "Walk (km)", true, r => r.distance_km.toFixed(2)],
+  ["vulnerability", "Score", true, r => fmt(r.vulnerability)],
+  ["nearest_supermarket", "Nearest shop", false, shopCell],
+  ["istat_food_specialists", "Specialist shops (comune)", true, r => fmt(r.istat_food_specialists)],
+  ["_map", "", false, r => r.flagged_for_review ? "" :
+    `<a href="index.html#s=${encodeURIComponent(r.settlement_id)}">Map&nbsp;&rarr;</a>`],
+];
+
+// A store placed from ISTAT's register is named "Store in ISTAT's register,
+// <village> (location inferred)" in the data; shown shorter here, with a tag.
+function shopCell(r) {
+  if (!r.nearest_is_inferred) return `<span class="wrap">${esc(r.nearest_supermarket)}</span>`;
+  const village = String(r.nearest_supermarket)
+    .replace(/^Store in ISTAT's register, /, "").replace(/ \(location inferred\)$/, "");
+  return `<span class="wrap">ISTAT store in ${esc(village)}<span class="tag"
+    title="In ISTAT's business register but not on OpenStreetMap; its location is inferred">inferred</span></span>`;
+}
+
+let rows = [], view = [], page = 0;
+let sortKey = "vulnerability", sortDir = -1;
+const $ = id => document.getElementById(id);
+
+function header() {
+  $("head").innerHTML = COLUMNS.map(([key, label, num]) => {
+    if (key === "_map") return "<th></th>";
+    const active = key === sortKey;
+    const aria = active ? ` aria-sort="${sortDir > 0 ? "ascending" : "descending"}"` : "";
+    const arrow = active ? (sortDir > 0 ? "▲" : "▼") : "";
+    return `<th${num ? ' class="num"' : ""}${aria}><button type="button" data-key="${key}">${label}<span aria-hidden="true">${arrow}</span></button></th>`;
+  }).join("");
+}
+
+function applyFilters() {
+  const q = fold($("q").value.trim());
+  const region = $("region").value, province = $("province").value;
+  const mainOnly = $("main-only").checked, inferredOnly = $("inferred-only").checked;
+  const flagged = $("show-flagged").checked;
+  view = rows.filter(r =>
+    (!q || r._search.includes(q)) &&
+    (!region || r.region === region) &&
+    (!province || r.province === province) &&
+    (!mainOnly || r.is_main_town) &&
+    (!inferredOnly || r.nearest_is_inferred) &&
+    (flagged || !r.flagged_for_review));
+  const numeric = COLUMNS.find(c => c[0] === sortKey)[2];
+  view.sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;                   // blanks last, whichever way
+    if (y == null) return -1;
+    return sortDir * (numeric ? x - y : String(x).localeCompare(String(y), "it"));
+  });
+  page = 0;
+  draw();
+}
+
+function draw() {
+  const pages = Math.max(1, Math.ceil(view.length / PAGE_SIZE));
+  page = Math.min(page, pages - 1);
+  const slice = view.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  $("body").innerHTML = slice.map(r =>
+    `<tr${r.flagged_for_review ? ' class="flagged"' : ""}>${COLUMNS.map(([key, , num, cell]) =>
+      `<td${num ? ' class="num"' : ""}>${cell ? cell(r) : esc(r[key])}</td>`).join("")}</tr>`).join("")
+    || `<tr><td colspan="${COLUMNS.length}">No settlements match these filters.</td></tr>`;
+  $("count").textContent = `${fmt(view.length)} of ${fmt(rows.length)} settlements`;
+  const residents = view.reduce((s, r) => s + (r.population || 0), 0);
+  const seniors = view.reduce((s, r) => s + (r.population_65plus || 0), 0);
+  $("sums").textContent = `${fmt(residents)} residents · ${fmt(seniors)} aged 65+ (est.)`;
+  $("page").textContent = `Page ${page + 1} of ${pages}`;
+  $("prev").disabled = page === 0;
+  $("next").disabled = page >= pages - 1;
+  header();
+}
+
+function fillProvinces() {
+  const region = $("region").value;
+  const provinces = [...new Set(rows.filter(r => !region || r.region === region).map(r => r.province))]
+    .sort((a, b) => a.localeCompare(b, "it"));
+  $("province").innerHTML = `<option value="">All provinces</option>`
+    + provinces.map(p => `<option>${esc(p)}</option>`).join("");
+}
+
+function downloadCsv() {
+  const fields = COLUMNS.map(c => c[0]).filter(k => k !== "_map")
+    .concat(["pct_65plus", "aging_index", "excess_km", "istat_code", "settlement_id",
+             "is_main_town", "nearest_is_inferred", "flagged_for_review"]);
+  const quote = v => v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const csv = [fields.join(",")].concat(view.map(r => fields.map(f => quote(r[f])).join(","))).join("\n");
+  // A BOM so Excel opens accented names (Pàlu, Cà) correctly.
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: "food_desert_settlements.csv" });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+$("head").addEventListener("click", e => {
+  const key = e.target.closest("button")?.dataset.key;
+  if (!key) return;
+  const numeric = COLUMNS.find(c => c[0] === key)[2];
+  sortDir = key === sortKey ? -sortDir : (numeric ? -1 : 1);   // numbers: biggest first
+  sortKey = key;
+  applyFilters();
+});
+let typing;
+$("q").addEventListener("input", () => { clearTimeout(typing); typing = setTimeout(applyFilters, 150); });
+$("region").addEventListener("change", () => { fillProvinces(); applyFilters(); });
+["province", "main-only", "inferred-only", "show-flagged"].forEach(id => $(id).addEventListener("change", applyFilters));
+$("prev").addEventListener("click", () => { page--; draw(); });
+$("next").addEventListener("click", () => { page++; draw(); });
+$("csv").addEventListener("click", downloadCsv);
+
+fetch("data/results.json?_=" + Date.now())
+  .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
+  .then(data => {
+    rows = data.map(r => ({ ...r, _search: fold(`${r.name} ${r.comune}`) }));
+    const regions = [...new Set(rows.map(r => r.region))].sort((a, b) => a.localeCompare(b, "it"));
+    $("region").innerHTML += regions.map(r => `<option>${esc(r)}</option>`).join("");
+    fillProvinces();
+    // The map's popups link here as explore.html?q=<name>.
+    const q = new URLSearchParams(location.search).get("q");
+    if (q) $("q").value = q;
+    applyFilters();
+  })
+  .catch(err => {
+    $("error").hidden = false;
+    $("error").textContent = `Could not load the results (${err.message}). If you are running this `
+      + `locally, check that "python run.py analyze" and "python run.py publish" have been run.`;
+    $("count").textContent = "";
+  });
+</script>
+</body>
+</html>

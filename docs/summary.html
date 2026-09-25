@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Food Deserts — Summary</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23b5502f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f6f4ee'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="site.css" />
+<style>
+  /* --- Headline figures --------------------------------------------------- */
+  .hero { display: grid; grid-template-columns: minmax(240px, 1.2fr) 2fr; gap: 16px; }
+  .hero-figure .value { font-size: 52px; font-weight: 600; line-height: 1.05; letter-spacing: -0.01em; }
+  .hero-figure { display: flex; flex-direction: column; }
+  .hero-figure .label { color: var(--ink-2); margin: 8px 0 20px; max-width: 32ch; }
+  .hero-cta { margin-top: auto; align-self: flex-start; }   /* sits at the card's foot */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .tile .label { color: var(--muted); font-size: 13px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .note { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
+
+  /* --- Horizontal bars (classification, regions) -------------------------- */
+  .bars { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; }
+  .bars .name { font-size: 13px; color: var(--ink); text-align: right; }
+  .bars .track { position: relative; height: 20px; }
+  .bars .bar {
+    position: absolute; left: 0; top: 2px; height: 16px;
+    background: var(--accent);
+    border-radius: 0 4px 4px 0;          /* rounded data-end, square at the baseline */
+    min-width: 2px;
+  }
+  .bars .bar.muted { background: #b9b2a3; }
+  .bars .value {
+    position: absolute; top: 0; line-height: 20px;
+    font-size: 12px; color: var(--ink-2); white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .bars .hit { position: absolute; inset: -3px 0; cursor: default; }
+  .bars .hit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+
+  /* --- Columns (distance bands) -------------------------------------------- */
+  .columns { display: flex; align-items: flex-end; gap: 18px; height: 220px; padding: 22px 8px 0;
+             border-bottom: 1px solid var(--line); }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+         height: 100%; position: relative; }
+  .col .bar { width: min(24px, 100%); background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .col .value { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .col-labels { display: flex; gap: 18px; padding: 6px 8px 0; }
+  .col-labels span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
+
+  /* --- Tables ------------------------------------------------------------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--grid); text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+  .table-wrap { overflow-x: auto; }
+
+  /* --- Tooltip ------------------------------------------------------------- */
+  #tip {
+    position: fixed; z-index: 100; pointer-events: none;
+    background: var(--ink); color: #fff; border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; line-height: 1.45;
+    max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  }
+  #tip[hidden] { display: none; }
+  #tip b { display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .notes li { margin: 6px 0; color: var(--ink-2); }
+
+  /* --- Opening: why it matters, who, how ---------------------------------- */
+  #title { font-size: 34px; max-width: 24ch; }
+  .story { max-width: 68ch; margin: 14px 0 28px; }
+  .story p { margin: 0 0 12px; color: var(--ink-2); font-size: 16px; }
+  .story p.lede { font-size: 18px; color: var(--ink); }
+  .story strong { color: var(--ink); }
+  .story .generated { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  @media (max-width: 640px) { #title { font-size: 26px; } .story p.lede { font-size: 16px; } }
+  #error { color: #9d3a1f; }
+</style>
+</head>
+<body class="page">
+
+<header class="page-header">
+  <span class="brand">Food deserts in Italy</span>
+  <nav class="site-nav" aria-label="Pages">
+    <a href="index.html">Map</a>
+    <a href="summary.html" aria-current="page">Summary</a>
+    <a href="explore.html">Explore data</a>
+  </nav>
+</header>
+
+<main>
+  <p class="eyebrow">Results summary</p>
+  <h1 id="title">Food deserts in Italy</h1>
+  <div class="story" id="story"><p class="lede">Loading results&hellip;</p></div>
+  <p id="error" hidden></p>
+
+  <section class="hero" id="hero" hidden>
+    <div class="card hero-figure">
+      <div class="value" id="hero-value"></div>
+      <div class="label" id="hero-label"></div>
+      <a class="button hero-cta" href="index.html">Open the map &rarr;</a>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <h2>What happened to every settlement</h2>
+  <p class="sub" id="funnel-sub"></p>
+  <div class="card"><div class="bars" id="funnel"></div></div>
+
+  <h2>Share of residents affected, by region</h2>
+  <p class="sub">Residents of underserved settlements as a share of all residents of the region's
+    towns and villages. Hover a bar for details.</p>
+  <div class="card">
+    <div class="bars" id="regions"></div>
+    <details><summary>View as table</summary><div class="table-wrap" id="regions-table"></div></details>
+  </div>
+
+  <h2>How far they have to walk</h2>
+  <p class="sub">Residents of underserved settlements, by walking distance to the nearest shop.
+    Walks of 10 km or more are flagged for review and not counted here.</p>
+  <div class="card">
+    <div class="columns" id="bands"></div>
+    <div class="col-labels" id="band-labels"></div>
+    <details><summary>View as table</summary><div class="table-wrap" id="bands-table"></div></details>
+  </div>
+
+  <h2>Most affected settlements</h2>
+  <p class="sub">Ranked by residents aged 65+ times the kilometres beyond 3 km.
+    <a href="explore.html">Explore all results &rarr;</a></p>
+  <div class="card table-wrap" id="top"></div>
+
+  <h2>Reading these figures</h2>
+  <ul class="notes">
+    <li>A <strong>settlement</strong> is a town or village as ISTAT records it (a <em>centro abitato</em>),
+      so a comune's outlying villages are measured separately from its main town. Hamlets and
+      scattered houses are not analysed.</li>
+    <li>Shops come from OpenStreetMap. Where ISTAT's business register counts more supermarkets
+      and grocers in a comune than OpenStreetMap maps, the missing ones are placed in its main town
+      or largest villages, and treated like any other shop.</li>
+    <li>Distances are real walking routes, not straight lines. Residents aged 65+ are estimated from
+      each comune's share, since ISTAT does not publish ages per settlement.</li>
+    <li>Full method and limitations: <a href="https://github.com/RiccardoPerana/Food-Desert-Analysis-North-Eastern-Italy#how-it-works">the project README</a>.</li>
+  </ul>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <span>Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL)
+      &middot; population and business data &copy; <a href="https://www.istat.it">ISTAT</a> (CC BY 4.0)
+      &middot; routing by <a href="http://project-osrm.org/">OSRM</a></span>
+    <span><a href="https://github.com/RiccardoPerana/Food-Desert-Analysis-North-Eastern-Italy">Source code and method</a> &middot; MIT licence</span>
+  </div>
+</footer>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<script>
+const fmt = n => (n ?? 0).toLocaleString("en-GB");
+const pct = (n, d = 1) => `${(n ?? 0).toFixed(d)}%`;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// --- Tooltip: one element, filled from each mark's data-tip ----------------
+const tip = document.getElementById("tip");
+function showTip(el, x, y) {
+  tip.innerHTML = el.dataset.tip;
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(x + 14, innerWidth - r.width - 8) + "px";
+  tip.style.top = Math.max(8, y - r.height - 10) + "px";
+}
+document.addEventListener("mousemove", e => {
+  const el = e.target.closest("[data-tip]");
+  el ? showTip(el, e.clientX, e.clientY) : (tip.hidden = true);
+});
+document.addEventListener("focusin", e => {
+  const el = e.target.closest("[data-tip]");
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  showTip(el, r.left + r.width / 2, r.top);
+});
+document.addEventListener("focusout", () => { tip.hidden = true; });
+
+// Horizontal bars. rows: [{name, value, label, tip, muted}]. Every bar carries
+// its value at the tip, so no axis or gridlines are needed.
+function drawBars(el, rows) {
+  const max = Math.max(...rows.map(r => r.value), 0) || 1;
+  // Leave room at the end of the longest bar for its value label.
+  const scale = v => 100 * v / max * 0.86;
+  el.innerHTML = rows.map(r => `
+    <div class="name">${esc(r.name)}</div>
+    <div class="track">
+      <div class="bar${r.muted ? " muted" : ""}" style="width:${scale(r.value)}%"></div>
+      <div class="value" style="left:calc(${scale(r.value)}% + 6px)">${r.label}</div>
+      <div class="hit" tabindex="0" data-tip="${esc(r.tip)}" aria-label="${esc(r.name)}: ${esc(r.label)}"></div>
+    </div>`).join("");
+}
+
+function table(headers, rows) {
+  return `<table><thead><tr>${headers.map(([h, num]) =>
+    `<th${num ? ' class="num"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r =>
+    `<tr>${r.map((c, i) => `<td${headers[i][1] ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+fetch("data/summary.json?_=" + Date.now())
+  .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
+  .then(render)
+  .catch(err => {
+    const e = document.getElementById("error");
+    e.hidden = false;
+    e.textContent = `Could not load the results summary (${err.message}). If you are running this `
+      + `locally, check that "python run.py analyze" and "python run.py publish" have been run.`;
+    document.getElementById("story").hidden = true;
+  });
+
+function render(s) {
+  const km = s.distance_threshold_km;
+  document.title = `Food Deserts — Summary — ${s.label}`;
+
+  // The opening: a headline, then why it matters and how it was measured --
+  // in that order, before any of the detail below.
+  const share65 = s.residents_affected ? 100 * s.residents_65plus_affected / s.residents_affected : 0;
+  const roundedDown = Math.floor(s.residents_affected / 10000) * 10000;
+  document.getElementById("title").textContent =
+    `${roundedDown >= 10000 ? "Over " + fmt(roundedDown) : fmt(s.residents_affected)} people in ${s.label} `
+    + `live far from a supermarket`;
+  document.getElementById("story").innerHTML = `
+    <p class="lede">For anyone with a car, shopping is an errand. Where public transport is lacking, or
+      for someone in their eighties, it decides whether they can still do their shopping &mdash; or must
+      rely on someone else.</p>
+    <p><strong>How it was measured.</strong> Every one of ${esc(s.label)}'s ${fmt(s.settlements_evaluated)} towns
+      and villages was checked for a supermarket or grocery store. Where it had none, a real walking route to
+      the nearest one was traced along roads and paths. Where OpenStreetMap is missing shops, ISTAT's
+      business register fills the gaps.</p>
+    <p class="generated">Results generated ${esc(s.generated)}.</p>`;
+
+  // Headline: one hero figure, the rest as tiles.
+  document.getElementById("hero").hidden = false;
+  document.getElementById("hero-value").textContent = fmt(s.residents_affected);
+  document.getElementById("hero-label").textContent =
+    `residents live in a town or village more than ${km} km on foot from the nearest shop.`;
+  document.getElementById("tiles").innerHTML = [
+    ["Underserved settlements", fmt(s.confirmed), `${fmt(s.confirmed_main_towns)} of them a comune's main town`],
+    ["Residents aged 65+ (estimated)", fmt(s.residents_65plus_affected), `${pct(share65)} of those affected`],
+    ["Flagged for review", fmt(s.flagged), `walks of ${s.review_threshold_km} km or more, checked by hand before counting`],
+    ["Stores placed from ISTAT's register", fmt(s.inferred_stores_placed), "registered, but missing from OpenStreetMap"],
+  ].map(([label, value, note]) => `<div class="card tile"><div class="label">${label}</div>
+      <div class="value">${value}</div><div class="note">${note}</div></div>`).join("");
+
+  // Every settlement, accounted for. The outcome this page is about is the
+  // one in the accent colour; the rest are context.
+  document.getElementById("funnel-sub").textContent =
+    `All ${fmt(s.settlements_evaluated)} settlements, by the first test that decided them.`;
+  const n = s.settlements_evaluated || 1;
+  const outcome = (name, value, detail, muted = true) =>
+    ({ name, value, muted, label: `${fmt(value)} · ${pct(100 * value / n)}`,
+       tip: `<b>${esc(name)}</b>${fmt(value)} settlements (${pct(100 * value / n)})<br>${detail}` });
+  drawBars(document.getElementById("funnel"), [
+    outcome("Shop mapped in OpenStreetMap", s.served_by_osm_shop,
+            "A supermarket or convenience store inside the settlement or within 200 m."),
+    outcome("Store placed from ISTAT", s.served_by_inferred_store,
+            "No mapped shop, but served by a store ISTAT registers in the comune."),
+    outcome(`Shop within ${km} km on foot`, s.within_threshold, "No shop of its own, but a short walk to one."),
+    outcome(`More than ${km} km on foot`, s.confirmed,
+            `Underserved. ${fmt(s.residents_affected)} residents.`, false),
+    outcome("Flagged for review", s.flagged, `A walk of ${s.review_threshold_km} km or more: checked by hand before counting.`),
+  ].concat(s.unroutable ? [outcome("No walkable route", s.unroutable, "No path to any nearby shop.")] : []));
+
+  // Regions, ranked.
+  const regions = s.by_region.filter(r => r.region !== "Unknown");
+  drawBars(document.getElementById("regions"), regions.map(r => ({
+    name: r.region, value: r.pct_affected, label: pct(r.pct_affected),
+    tip: `<b>${esc(r.region)}</b>${pct(r.pct_affected)} of residents affected<br>`
+       + `${fmt(r.residents_affected)} residents in ${fmt(r.underserved)} underserved settlements<br>`
+       + `${fmt(r.settlements)} settlements analysed · ${fmt(r.inferred_stores)} stores placed from ISTAT`,
+  })));
+  document.getElementById("regions-table").innerHTML = table(
+    [["Region"], ["Settlements", 1], ["Underserved", 1], ["Residents affected", 1], ["Share", 1], ["Stores placed", 1]],
+    regions.map(r => [esc(r.region), fmt(r.settlements), fmt(r.underserved), fmt(r.residents_affected),
+                      pct(r.pct_affected, 2), fmt(r.inferred_stores)]));
+
+  // Distance bands.
+  const bands = s.distance_bands;
+  const bmax = Math.max(...bands.map(b => b.residents), 1);
+  document.getElementById("bands").innerHTML = bands.map(b => `
+    <div class="col" tabindex="0" data-tip="<b>${esc(b.label)}</b>${fmt(b.residents)} residents<br>${fmt(b.settlements)} settlements"
+         aria-label="${esc(b.label)}: ${fmt(b.residents)} residents">
+      <div class="value">${fmt(b.residents)}</div>
+      <div class="bar" style="height:${Math.max(1, 82 * b.residents / bmax)}%"></div>
+    </div>`).join("");
+  document.getElementById("band-labels").innerHTML = bands.map(b => `<span>${esc(b.label)}</span>`).join("");
+  document.getElementById("bands-table").innerHTML = table(
+    [["Walking distance"], ["Settlements", 1], ["Residents", 1]],
+    bands.map(b => [esc(b.label), fmt(b.settlements), fmt(b.residents)]));
+
+  // Most affected.
+  document.getElementById("top").innerHTML = table(
+    [["Settlement"], ["Comune"], ["Region"], ["Residents", 1], ["65+ (est.)", 1], ["Walk", 1], [""]],
+    s.most_affected.map(r => [
+      `<strong>${esc(r.name)}</strong>`, esc(r.comune), esc(r.region),
+      fmt(r.population), fmt(r.population_65plus), `${r.distance_km.toFixed(1)} km`,
+      `<a href="index.html#s=${encodeURIComponent(r.settlement_id)}">Map&nbsp;&rarr;</a>`]));
+}
+</script>
+</body>
+</html>
