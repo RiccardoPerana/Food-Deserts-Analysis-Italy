@@ -82,18 +82,11 @@ A settlement is reported as underserved when **both** conditions hold:
 2. **The routed walking distance from it to the nearest reachable shop
    exceeds 3 km.**
 
-```mermaid
-flowchart LR
-    A["21,708 towns and villages<br/>ISTAT census 2021"] --> B{"Shop inside it,<br/>or within 200 m?"}
-    B -- "mapped in OpenStreetMap" --> S1["Served<br/>7,486"]
-    B -- "placed from ISTAT's register" --> S2["Served<br/>3,536"]
-    B -- "no" --> C{"Walk to the nearest shop<br/>(OSRM, 5 candidates)"}
-    C -- "3 km or less" --> S3["Short walk<br/>5,523"]
-    C -- "3 to 10 km" --> U["Underserved<br/>5,016"]
-    C -- "10 km or more" --> F["Flagged for review<br/>147"]
-    style U fill:#b5502f,color:#fff,stroke:#8a3b22
-    style F fill:#fff3cd,stroke:#e6cf8b
-```
+<p align="center">
+  <img src="screenshots/how-it-works.png"
+       alt="Flowchart: of 21,708 towns and villages, 7,486 have a shop mapped in OpenStreetMap and 3,536 one placed from ISTAT's register; the rest are routed to the nearest shop, giving 5,523 within a 3 km walk, 5,016 underserved at 3 to 10 km, and 147 flagged for review at 10 km or more"
+       width="900">
+</p>
 
 ### Why settlements, not comuni
 
