@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="https://riccardoperana.github.io/Food-Desert-Analysis-North-Eastern-Italy/"><img alt="Open the map" src="https://img.shields.io/badge/open%20the%20map-%E2%86%92-b5502f?style=for-the-badge"></a>
-  <a href="https://riccardoperana.github.io/Food-Desert-Analysis-North-Eastern-Italy/summary.html"><img alt="Results summary" src="https://img.shields.io/badge/results%20summary-%E2%86%92-1c2a24?style=for-the-badge"></a>
-  <a href="https://riccardoperana.github.io/Food-Desert-Analysis-North-Eastern-Italy/explore.html"><img alt="Explore the data" src="https://img.shields.io/badge/explore%20the%20data-%E2%86%92-1c2a24?style=for-the-badge"></a>
+  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/"><img alt="Open the map" src="https://img.shields.io/badge/open%20the%20map-%E2%86%92-b5502f?style=for-the-badge"></a>
+  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/summary.html"><img alt="Results summary" src="https://img.shields.io/badge/results%20summary-%E2%86%92-1c2a24?style=for-the-badge"></a>
+  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/explore.html"><img alt="Explore the data" src="https://img.shields.io/badge/explore%20the%20data-%E2%86%92-1c2a24?style=for-the-badge"></a>
 </p>
 
 <p align="center">
@@ -178,7 +178,7 @@ so can a routing artefact, and the two are indistinguishable without checking.
 
 ## The website
 
-The [live site](https://riccardoperana.github.io/Food-Desert-Analysis-North-Eastern-Italy/)
+The [live site](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/)
 has three pages, switched from the top-left corner of each:
 
 - **Map** — every underserved settlement: a dot when zoomed out, and zoomed in
@@ -419,8 +419,8 @@ quarter of each figure.
 ### Quick start
 
 ```powershell
-git clone https://github.com/RiccardoPerana/Food-Desert-Analysis-North-Eastern-Italy.git
-cd Food-Desert-Analysis-North-Eastern-Italy
+git clone https://github.com/RiccardoPerana/Food-Deserts-Analysis-Italy.git
+cd Food-Deserts-Analysis-Italy
 
 python -m venv venv
 .\venv\Scripts\Activate.ps1
