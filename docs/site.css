@@ -107,4 +107,22 @@ a { color: var(--accent); }
   .page-header { padding: 0 16px; height: 56px; }
   .page-header .brand { display: none; }   /* the switcher needs the width */
   h1 { font-size: 22px; }
+  .card { padding: 14px; }
+  /* Wide tables scroll sideways inside their box on a phone. The first
+     column -- the settlement or region -- stays pinned, and may wrap, so
+     every row keeps its name in view while the figures scroll past. */
+  .table-wrap th:first-child,
+  .table-wrap td:first-child {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--panel);
+    white-space: normal;
+    min-width: 120px; max-width: 150px;
+    box-shadow: inset -1px 0 0 var(--grid);
+  }
+  .table-wrap thead th:first-child { z-index: 2; }
+  /* A card that scrolls keeps its inset on the cells instead: as padding,
+     the scrolled figures showed through it beside the pinned column. */
+  .card.table-wrap { padding-left: 0; padding-right: 0; }
+  .card.table-wrap th:first-child, .card.table-wrap td:first-child { padding-left: 14px; }
+  .card.table-wrap th:last-child, .card.table-wrap td:last-child { padding-right: 14px; }
 }

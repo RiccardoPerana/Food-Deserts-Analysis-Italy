@@ -84,6 +84,10 @@
     font-size: 13px;
     line-height: 1.4;
     box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+    /* An explicit width: with only left:50%, its shrink-to-fit width is
+       capped at the half of the screen right of centre, which on a phone
+       squeezed it into a narrow three-line column. */
+    width: max-content;
     max-width: min(420px, calc(100vw - 32px));
     text-align: center;
     /* Purely informational, so it should never swallow a map drag or a
@@ -101,6 +105,7 @@
       bottom: 46px;
       font-size: 12px;
       padding: 9px 13px;
+      max-width: calc(100vw - 120px);   /* clear of the zoom buttons on either side */
     }
     #controls {
       top: 58px;                  /* below the page switcher, which spans the width */
@@ -668,11 +673,19 @@ function selectTown(feature, marker, fit = false) {
     }).addTo(map);
   }
   pendingFit = fit && !selectedRouteLayer;
+  const size = map.getSize();
+  const narrow = size.x <= 640;
   if (fit && selectedRouteLayer) {
     // Room on every side for the popup, which opens above the marker and can
-    // sit anywhere along the route's edge.
+    // sit anywhere along the route's edge. On a phone the popup spans nearly
+    // the whole width anyway, and 180px a side would leave the route no room
+    // at all -- the map zoomed far out to fit it into a sliver. Not animated
+    // there: the popup then has to pan itself into view, and it can only
+    // measure where it is once the zoom has finished.
+    const padX = narrow ? 24 : 180;
     map.fitBounds(selectedRouteLayer.getBounds().extend(marker.getLatLng()),
-                  { paddingTopLeft: [180, 330], paddingBottomRight: [180, 60], maxZoom: 15 });
+                  { paddingTopLeft: [padX, Math.min(330, size.y * 0.5)],
+                    paddingBottomRight: [padX, 60], maxZoom: 15, animate: !narrow });
   }
   restackLines();
 
@@ -700,7 +713,13 @@ function selectTown(feature, marker, fit = false) {
     <a class="pop-link" href="explore.html?q=${encodeURIComponent(props.name)}">Find it in the data table &rarr;</a>
   `;
 
-  marker.bindPopup(popupHtml, { maxWidth: 290, minWidth: 240 }).openPopup();
+  // On a phone the layer controls span the top of the map, above the popup
+  // pane: pan the popup below them, so they never cover its close button.
+  const controlsBottom = document.getElementById("controls").getBoundingClientRect().bottom;
+  const popupOptions = narrow
+    ? { maxWidth: 290, minWidth: 240, autoPanPaddingTopLeft: L.point(10, controlsBottom + 10) }
+    : { maxWidth: 290, minWidth: 240 };
+  marker.bindPopup(popupHtml, popupOptions).openPopup();
 }
 </script>
 </body>

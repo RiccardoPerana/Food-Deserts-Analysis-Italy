@@ -23,11 +23,17 @@
   @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
 
   /* --- Horizontal bars (classification, regions) -------------------------- */
-  .bars { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; }
+  /* --span is the share of the track the longest bar may take: 86%, or less
+     when the widest value label (--room, measured by drawBars) would not
+     fit in the rest -- which on a phone it does not. Each row's --f is its
+     value as a fraction of the largest. */
+  .bars { --room: 0px; --span: min(86%, 100% - var(--room));
+          display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; }
   .bars .name { font-size: 13px; color: var(--ink); text-align: right; }
   .bars .track { position: relative; height: 20px; }
   .bars .bar {
     position: absolute; left: 0; top: 2px; height: 16px;
+    width: calc(var(--span) * var(--f));
     background: var(--accent);
     border-radius: 0 4px 4px 0;          /* rounded data-end, square at the baseline */
     min-width: 2px;
@@ -35,6 +41,7 @@
   .bars .bar.muted { background: #b9b2a3; }
   .bars .value {
     position: absolute; top: 0; line-height: 20px;
+    left: calc(var(--span) * var(--f) + 6px);
     font-size: 12px; color: var(--ink-2); white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
@@ -49,7 +56,19 @@
   .col .bar { width: min(24px, 100%); background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
   .col .value { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
   .col-labels { display: flex; gap: 18px; padding: 6px 8px 0; }
+  .col-labels[hidden] { display: none; }
   .col-labels span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
+
+  /* --- Phones --------------------------------------------------------------- */
+  @media (max-width: 640px) {
+    /* Long category names go above their bar, so the bar gets the full width. */
+    .bars.stack { grid-template-columns: 1fr; gap: 2px; }
+    .bars.stack .name { text-align: left; margin-top: 6px; }
+    .bars.stack .name:first-child { margin-top: 0; }
+    /* The "Most affected" table scrolls sideways (see site.css): keep each
+       figure on one line rather than squeezing every column. */
+    .table-wrap td, .table-wrap th { white-space: nowrap; }
+  }
 
   /* --- Tables ------------------------------------------------------------- */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -110,11 +129,11 @@
 
   <h2>What happened to every settlement</h2>
   <p class="sub" id="funnel-sub"></p>
-  <div class="card"><div class="bars" id="funnel"></div></div>
+  <div class="card"><div class="bars stack" id="funnel"></div></div>
 
   <h2>Share of residents affected, by region</h2>
   <p class="sub">Residents of underserved settlements as a share of all residents of the region's
-    towns and villages. Hover a bar for details.</p>
+    towns and villages. Hover or tap a bar for details.</p>
   <div class="card">
     <div class="bars" id="regions"></div>
     <details><summary>View as table</summary><div class="table-wrap" id="regions-table"></div></details>
@@ -189,15 +208,52 @@ document.addEventListener("focusout", () => { tip.hidden = true; });
 // its value at the tip, so no axis or gridlines are needed.
 function drawBars(el, rows) {
   const max = Math.max(...rows.map(r => r.value), 0) || 1;
-  // Leave room at the end of the longest bar for its value label.
-  const scale = v => 100 * v / max * 0.86;
   el.innerHTML = rows.map(r => `
     <div class="name">${esc(r.name)}</div>
-    <div class="track">
-      <div class="bar${r.muted ? " muted" : ""}" style="width:${scale(r.value)}%"></div>
-      <div class="value" style="left:calc(${scale(r.value)}% + 6px)">${r.label}</div>
+    <div class="track" style="--f:${r.value / max}">
+      <div class="bar${r.muted ? " muted" : ""}"></div>
+      <div class="value">${r.label}</div>
       <div class="hit" tabindex="0" data-tip="${esc(r.tip)}" aria-label="${esc(r.name)}: ${esc(r.label)}"></div>
     </div>`).join("");
+  fitLabels(el);
+}
+
+// Leave room at the end of the longest bar for the widest value label (see
+// --span in the CSS). Measured again once the webfont has loaded, since
+// that changes the labels' width.
+function fitLabels(el) {
+  const measure = () => {
+    const widest = Math.max(0, ...[...el.querySelectorAll(".value")].map(v => v.offsetWidth));
+    el.style.setProperty("--room", `${widest + 10}px`);
+  };
+  measure();
+  document.fonts?.ready.then(measure);
+}
+
+// Distance bands: columns where there is room for them, horizontal bars on a
+// phone, where seven columns cannot fit their value labels. Redrawn if the
+// width crosses over (a phone turned sideways).
+const narrow = matchMedia("(max-width: 640px)");
+function drawBands(bands) {
+  const el = document.getElementById("bands");
+  const labels = document.getElementById("band-labels");
+  const tip = b => `<b>${esc(b.label)}</b>${fmt(b.residents)} residents<br>${fmt(b.settlements)} settlements`;
+  labels.hidden = narrow.matches;
+  if (narrow.matches) {
+    el.className = "bars";
+    drawBars(el, bands.map(b => ({ name: b.label, value: b.residents, label: fmt(b.residents), tip: tip(b) })));
+    return;
+  }
+  el.className = "columns";
+  el.style.removeProperty("--room");
+  const bmax = Math.max(...bands.map(b => b.residents), 1);
+  el.innerHTML = bands.map(b => `
+    <div class="col" tabindex="0" data-tip="${tip(b)}"
+         aria-label="${esc(b.label)}: ${fmt(b.residents)} residents">
+      <div class="value">${fmt(b.residents)}</div>
+      <div class="bar" style="height:${Math.max(1, 82 * b.residents / bmax)}%"></div>
+    </div>`).join("");
+  labels.innerHTML = bands.map(b => `<span>${esc(b.label)}</span>`).join("");
 }
 
 function table(headers, rows) {
@@ -285,14 +341,8 @@ function render(s) {
 
   // Distance bands.
   const bands = s.distance_bands;
-  const bmax = Math.max(...bands.map(b => b.residents), 1);
-  document.getElementById("bands").innerHTML = bands.map(b => `
-    <div class="col" tabindex="0" data-tip="<b>${esc(b.label)}</b>${fmt(b.residents)} residents<br>${fmt(b.settlements)} settlements"
-         aria-label="${esc(b.label)}: ${fmt(b.residents)} residents">
-      <div class="value">${fmt(b.residents)}</div>
-      <div class="bar" style="height:${Math.max(1, 82 * b.residents / bmax)}%"></div>
-    </div>`).join("");
-  document.getElementById("band-labels").innerHTML = bands.map(b => `<span>${esc(b.label)}</span>`).join("");
+  drawBands(bands);
+  narrow.addEventListener("change", () => drawBands(bands));
   document.getElementById("bands-table").innerHTML = table(
     [["Walking distance"], ["Settlements", 1], ["Residents", 1]],
     bands.map(b => [esc(b.label), fmt(b.settlements), fmt(b.residents)]));
