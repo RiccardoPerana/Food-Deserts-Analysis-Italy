@@ -1,21 +1,32 @@
-<h1 align="center">Food deserts in Italy</h1>
+<div align="center">
 
-<p align="center">
-  <strong>Which towns and villages are more than a walk from the nearest supermarket?</strong><br>
-  Every town and village in Italy, measured by a real walking route to its nearest grocery store.
-</p>
+# Food Deserts in Italy
 
-<p align="center">
-  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/"><img alt="Open the map" src="https://img.shields.io/badge/open%20the%20map-%E2%86%92-b5502f?style=for-the-badge"></a>
-  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/summary.html"><img alt="Results summary" src="https://img.shields.io/badge/results%20summary-%E2%86%92-1c2a24?style=for-the-badge"></a>
-  <a href="https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/explore.html"><img alt="Explore the data" src="https://img.shields.io/badge/explore%20the%20data-%E2%86%92-1c2a24?style=for-the-badge"></a>
-</p>
+Which towns and villages are more than a walk from the nearest supermarket?<br>
+Every town and village in Italy, measured by a real walking route to its nearest grocery store.
 
-<p align="center">
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-6b6558?style=flat-square"></a>
-  <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-6b6558?style=flat-square"></a>
-  <a href="#data-sources"><img alt="Data: OpenStreetMap + ISTAT" src="https://img.shields.io/badge/data-OpenStreetMap%20%2B%20ISTAT-6b6558?style=flat-square"></a>
-</p>
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-6e7781?style=flat-square)](https://www.python.org/)
+[![Stack: GeoPandas · OSRM · Leaflet](https://img.shields.io/badge/stack-GeoPandas%20%C2%B7%20OSRM%20%C2%B7%20Leaflet-6e7781?style=flat-square)](#technical-architecture-and-approach)
+[![Data: OpenStreetMap + ISTAT](https://img.shields.io/badge/data-OpenStreetMap%20%2B%20ISTAT-6e7781?style=flat-square)](#data-sources)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6e7781?style=flat-square)](LICENSE)
+
+[Overview](#problem-statement-and-overview) ·
+[Architecture](#technical-architecture-and-approach) ·
+[Quick start](#quick-start-and-usage) ·
+[Challenges](#challenges-and-engineering-solutions) ·
+[Limitations](#limitations) ·
+[Results](#results-and-performance-analysis) ·
+[Licence](#licence)
+
+</div>
+
+<div align="center">
+
+[![Live Preview](https://img.shields.io/badge/Live%20Preview-0969da?style=for-the-badge)](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/)
+[![Results Summary](https://img.shields.io/badge/Results%20Summary-0969da?style=for-the-badge)](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/summary.html)
+[![Explore the Data](https://img.shields.io/badge/Explore%20the%20Data-0969da?style=for-the-badge)](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/explore.html)
+
+</div>
 
 <p align="center">
   <img src="screenshots/01-map-overview.png"
@@ -23,33 +34,15 @@
        width="900">
 </p>
 
-## At a glance
+Using OpenStreetMap, ISTAT's census and business register, and the OSRM
+routing engine, the project measures every town and village in Italy —
+21,708 settlements in all 7,894 comuni — by a routed walking distance to its
+nearest supermarket or grocery store. Its core output is a map and a ranked
+dataset of the 5,016 settlements that are more than a 3 km walk from one,
+home to 958,755 residents, with the ranking weighted by the number aged 65
+or over.
 
-| | |
-|---|---|
-| **958,755** residents | live in a town or village more than **3 km on foot** from the nearest supermarket or grocery store |
-| **5,016** settlements | 785 of them a comune's main town, 4,231 of them frazioni |
-| **260,902** aged 65+ | **27.2%** of those affected, against 24.7% for Italy as a whole (estimated) |
-| **21,708** analysed | every town and village ISTAT records, in all 7,894 comuni |
-
-<sub>Population figures are ISTAT's for 2024. Shops come from OpenStreetMap, plus
-3,494 stores that ISTAT's business register counts but OpenStreetMap does not
-map, placed in the settlements most likely to hold them — see
-[How it works](#how-it-works).</sub>
-
-**Contents** —
-[Why this matters](#why-this-matters) ·
-[How it works](#how-it-works) ·
-[The website](#the-website) ·
-[Challenges and how we solved them](#challenges-and-how-we-solved-them) ·
-[Data sources](#data-sources) ·
-[Run it yourself](#run-it-yourself) ·
-[Known limitations](#known-limitations) ·
-[What it found](#what-it-found)
-
----
-
-## Why this matters
+## Problem statement and overview
 
 Italy has one of the world's oldest populations, and the skew is sharpest in
 small towns that younger residents have left.
@@ -69,9 +62,13 @@ are not the same problem. Every result here is weighted by the number of
 residents aged 65 or over, so the ranking reflects where the burden is
 *largest*, not merely where it is most extreme.
 
----
+## Technical architecture and approach
 
-## How it works
+Built with Python (GeoPandas, Shapely, pyosmium), OSRM in Docker for
+pedestrian routing, and Leaflet for the web map, on OpenStreetMap and ISTAT
+data.
+
+### How it works
 
 The unit of analysis is the **settlement**: every town and village ISTAT
 records as a *centro abitato* — 21,708 of them, home to 91% of residents.
@@ -88,7 +85,7 @@ A settlement is reported as underserved when **both** conditions hold:
        width="900">
 </p>
 
-### Why settlements, not comuni
+#### Why settlements, not comuni
 
 Comuni vary in size by region far more than by anything to do with shops. A
 Tuscan comune averages 66 km² and several villages; a Piedmontese one 14 km²
@@ -104,7 +101,7 @@ Each settlement keeps its 2021 share of its comune's residents, applied to the
 estimated from the comune's 2024 share. Hamlets (*nuclei abitati*, median 26
 residents) and scattered houses are not analysed.
 
-### Filling OpenStreetMap's gaps with ISTAT's shop register
+#### Filling OpenStreetMap's gaps with ISTAT's shop register
 
 OpenStreetMap is the only source of shop *locations*, and in parts of Italy it
 is far from complete. Poggiomarino (22,600 residents) has no supermarket in
@@ -123,15 +120,18 @@ be at least 0.5 — otherwise a town's unmapped stores would be spread across
 every hamlet around it.
 
 A placed store then counts like any other shop: its settlement is served, and
-neighbouring settlements can be routed to it. Every placement is listed in
-`output/inferred_stores.json`, and the map and spreadsheet say when a
-settlement's nearest shop is one of them.
+neighbouring settlements can be routed to it. A store placed at one
+settlement's centre can also fall within 200 m of a neighbouring settlement's
+outline, which then counts as served too: the 3,494 placed stores serve 3,536
+settlements, 42 of them neighbours of the one a store was placed in. Every
+placement is listed in `output/inferred_stores.json`, and the map and
+spreadsheet say when a settlement's nearest shop is one of them.
 
 Specialist food shops (ATECO 472: bakers, butchers, greengrocers) do not make
 a grocery and are not placed; the spreadsheet notes how many a main town's
 comune has.
 
-### Why 3 km
+#### Why 3 km
 
 Three kilometres is roughly half an hour's walk for an elderly person. There
 and back is an hour — which is also the typical frequency of extra-urban buses
@@ -141,7 +141,7 @@ Past that point, walking stops being the sensible option: you would have been
 better off waiting for the bus. The threshold marks where a walk stops being a
 walk and becomes a journey that has to be planned around a timetable.
 
-### Why routed distance, not straight-line
+#### Why routed distance, not straight-line
 
 Papozze, on the Po delta, has a shop 2.8 km away in a straight line. It is on
 the far bank, with no bridge nearby: the real walking route is **28.7 km**. A
@@ -153,13 +153,13 @@ path network. The pipeline routes to the **five** nearest candidate shops and
 keeps the shortest genuine walk, precisely so that an unreachable neighbour
 cannot masquerade as the closest one.
 
-### Why an equal-area projection
+#### Why an equal-area projection
 
 Distances are computed in EPSG:3035 (ETRS89 / LAEA Europe), in metres. Measuring
 in raw latitude/longitude degrees inflates east–west distances by roughly 44% at
 this latitude, which is enough to pick the wrong nearest shop.
 
-### What is flagged rather than reported
+#### What is flagged rather than reported
 
 Results at or beyond 10 km are flagged for manual review and excluded from the
 headline figures and the map, though they remain in the spreadsheet as a full
@@ -167,43 +167,230 @@ audit trail. Remote mountain towns genuinely can be that far from a shop — but
 so can a routing artefact, and the two are indistinguishable without checking.
 147 of the 5,163 results are currently flagged.
 
----
+### Data sources
 
-## The website
+| Source | Used for | Licence |
+|---|---|---|
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) (Geofabrik extract of 23 September 2026) | Town boundaries, shop locations, cycle lanes, transport routes | ODbL |
+| [ISTAT](https://www.istat.it) — 2024 regional census | Population, age structure, ageing index | CC BY 4.0 |
+| [ISTAT POSAS](https://demo.istat.it/app/?i=POS&l=it) — population at 1 January 2025 | The same census count, for Liguria (see below) | CC BY 4.0 |
+| [ISTAT ASIA](https://esploradati.istat.it/databrowser/) — local units by comune, 2023 | Stores OSM has not mapped (see above) | CC BY 4.0 |
+| [ISTAT Basi territoriali](https://www.istat.it/notizia/basi-territoriali-e-variabili-censuarie/) — localities, census 2021 | Settlement outlines and populations | CC BY 4.0 |
+| [OSRM](http://project-osrm.org/) | Pedestrian routing | BSD |
 
-The [live site](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/)
-has three pages, switched from the top-left corner of each:
+ISTAT files are read **exactly as published**, with no manual editing —
+download the same files (`python tools/download_istat.py`) and you regenerate
+the same numbers.
 
-- **Map** — every underserved settlement: a dot when zoomed out, and zoomed in
-  a circle sized by type (a comune's main town, or a frazione above or below
-  100 residents). Click one to draw its walking route and see its figures.
-  Cycle lanes and public transport can be overlaid, to judge by eye whether any
-  safe infrastructure follows the route.
-- **Summary** — the headline figures, what happened to every settlement, the
-  regional picture, how far people have to walk, and the most affected places.
-- **Explore data** — every result in a searchable, sortable table, filterable by
-  region, province and type, with a CSV of the current view and the full
-  spreadsheet to download. Each row links to its place on the map.
+Towns are matched to ISTAT by the six-digit ISTAT code that Italian comuni
+carry in OpenStreetMap (`ref:ISTAT`), not by name: Italy has several pairs of
+comuni sharing a name (two Castro, two Livo, two Samone…), and a name-only
+match would give one of each pair the other's population.
 
-<p align="center">
-  <img src="screenshots/02-settlement-detail.png"
-       alt="The map zoomed in on San Giovanni, a frazione of Ostellato, with its 9.3 km walking route to the nearest supermarket and a popup with its figures"
-       width="900">
-</p>
-<p align="center">
-  <em>San Giovanni, a frazione of Ostellato (Ferrara): 719 residents, 9.3 km on
-  foot from the nearest supermarket.</em>
-</p>
+**Liguria.** ISTAT's published Liguria workbook contains no per-comune tables —
+only province-level summaries. Liguria's 234 comuni are therefore taken from
+POSAS, ISTAT's own publication of the same census count by comune and age.
+Checked against the workbooks across every one of the 7,358 comuni both cover,
+the two agree exactly on population and on residents aged 65+.
 
-<p align="center">
-  <img src="screenshots/04-explore-data.png"
-       alt="The Explore data page: a filterable table of every underserved settlement"
-       width="900">
-</p>
+All geographic data is read from a local OpenStreetMap extract rather than live
+web queries, so it does not depend on the availability of free public query
+servers. The only network calls are a Nominatim request for the outline of the
+study area itself, and — only if a comune's boundary is broken in the extract —
+one per such comune, looked up by its OSM relation ID.
 
----
+## Quick start and usage
 
-## Challenges and how we solved them
+### Requirements
+
+For the whole of Italy (the default). The three-region study needs roughly a
+quarter of each figure.
+
+- **Python 3.9+**
+- **Docker** (runs the OSRM routing engine). On Windows, Docker Desktop with
+  the WSL 2 backend.
+- **~40 GB free disk space** — the 2.1 GB Italy extract, 10–15 GB of OSRM
+  routing graph plus temporary files while it builds, and up to ~9 GB of
+  temporary node index in `%TEMP%` during a run (removed automatically)
+- **16 GB of RAM**, with the WSL 2 memory limit raised (below)
+- Windows, macOS or Linux. Commands below use PowerShell; adjust for your shell.
+
+> **Memory: the OSRM build is the constraint**
+>
+> **Building the routing graph** for Italy's foot network is the heaviest step
+> by far — an estimated 8–12 GB at its peak. On Windows, WSL 2 caps Docker at
+> **half your RAM** by default, which is not enough on a 16 GB machine. Raise
+> it by creating `%UserProfile%\.wslconfig`:
+>
+> ```ini
+> [wsl2]
+> memory=12GB
+> swap=16GB
+> ```
+>
+> then run `wsl --shutdown` and restart Docker Desktop. Close the browser and
+> other large applications while the graph builds. If `osrm-extract` still
+> exits with code 137 (killed for memory), see
+> [Slimming the extract](#slimming-the-extract) below.
+>
+> **Reading the extract in Python** needs an index of every node coordinate —
+> around 4.5 GB for Italy. By default it is kept in a temporary file on disk
+> rather than in RAM (`OSMIUM_NODE_INDEX = "sparse_file_array"`), so the
+> analysis runs comfortably alongside the OSRM server. On a machine with RAM to
+> spare, `"flex_mem"` is faster.
+
+### Quick start
+
+```powershell
+git clone https://github.com/RiccardoPerana/Food-Deserts-Analysis-Italy.git
+cd Food-Deserts-Analysis-Italy
+
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+**1. Download the map extract** (2.1 GB) into `data/osm/`:
+
+```powershell
+New-Item -ItemType Directory -Force data\osm | Out-Null
+Invoke-WebRequest -Uri "https://download.geofabrik.de/europe/italy-latest.osm.pbf" `
+                  -OutFile "data\osm\italy-latest.osm.pbf"
+```
+
+**2. Download the ISTAT data** into `data/istat/`, then check it loads:
+
+```powershell
+python tools\download_istat.py
+python run.py istat      # expect 7,894 comuni, 107 provinces, 58,943,464 residents
+```
+
+That fetches the 21 regional workbooks of the
+[2024 census release](https://www.istat.it/comunicato-territoriale/censimento-della-popolazione-dati-regionali-anno-2024/)
+(Trentino-Alto Adige is published as two), the two POSAS files that cover
+Liguria, ISTAT's shop register, and the settlement outlines (`Localita_21.zip`,
+255 MB). Workbook filenames do not matter — every
+`.xlsx` in the folder is loaded. ISTAT publishes 7,896 comuni; two mergers
+since then (`COMUNE_MERGERS`) bring that to 7,894.
+
+ISTAT's data API is slow and sometimes stops answering for a while; if the
+shop register fails, re-run the script later — it skips what is already there.
+
+**3. Build the routing graph** (one-off; roughly 1–2 hours for Italy). From the
+project root:
+
+```powershell
+docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-extract -p /opt/foot.lua /data/italy-latest.osm.pbf
+docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-partition /data/italy-latest.osrm
+docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-customize /data/italy-latest.osrm
+```
+
+**4. Start the routing server** in its own terminal, and leave it running:
+
+```powershell
+docker run -t -i -p 5000:5000 -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend `
+    osrm-routed --algorithm mld /data/italy-latest.osrm
+```
+
+**5. Check everything is in place, then run:**
+
+```powershell
+python run.py paths      # every input should read OK
+python run.py all        # analyse, build map layers, publish
+python run.py serve      # preview at http://localhost:8000
+```
+
+The first `analyze` builds the town and supermarket caches from the extract —
+roughly 30–45 minutes for Italy, most of it assembling ~7,900 comune
+boundaries. Every run after that takes a few minutes. `layers` re-reads the
+extract each time (~10–20 minutes). The analysis checks at startup that the
+routing server is running *and* that it was built from an extract covering the
+study area, and stops with an explanation if not.
+
+#### Slimming the extract
+
+If the OSRM build runs out of memory, build it from a copy of the extract that
+keeps only what the foot profile can route over — roughly halving its size.
+This uses `osmium-tool` in a throwaway Debian container:
+
+```powershell
+docker run --rm -v "${PWD}/data/osm:/data" debian:bookworm-slim sh -c `
+  "apt-get update -qq && apt-get install -y -qq osmium-tool >/dev/null && osmium tags-filter /data/italy-latest.osm.pbf w/highway w/route=ferry w/railway=platform w/public_transport=platform w/man_made=pier w/amenity=parking,parking_entrance w/leisure=track -o /data/italy-routing.osm.pbf --overwrite"
+```
+
+Build the graph from `italy-routing.osm.pbf` instead (the files become
+`italy-routing.osrm.*`, so use that name in steps 3–4 and set
+`OSRM_DATASET_PATH` accordingly). Keep `italy-latest.osm.pbf` — the analysis
+itself still reads the full extract.
+
+#### Running the original three-region study
+
+Set `TARGET_LEVEL = "multi_region"` and `OSM_EXTRACT_NAME = "nord-est-latest"`
+in `food_desert/config.py`, download
+[nord-est-latest.osm.pbf](https://download.geofabrik.de/europe/italy/nord-est-latest.osm.pbf),
+and build the routing graph from it. Each study area keeps its own caches, so
+switching back and forth never loads the wrong one.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `python run.py analyze` | Run the analysis → `output/` |
+| `python run.py layers` | Build cycle-lane and transport overlays |
+| `python run.py publish` | Copy results into `docs/data/` for the live demo |
+| `python run.py serve` | Preview the site — map, summary and data pages — exactly as it will be published |
+| `python run.py diagnose "Town Name"` | Spot-check one town against cached and live data (a six-digit ISTAT code picks one of several same-named towns) |
+| `python run.py paths` | Show resolved paths and verify inputs exist |
+| `python run.py istat` | Load the ISTAT data and report what was found, in seconds |
+| `python run.py all` | analyse → layers → publish |
+
+Publishing is deliberately separate from analysis, so an experimental run
+cannot silently become the live demo.
+
+### Output
+
+- `output/food_desert_towns.xlsx` — every underserved settlement, sorted by
+  vulnerability, with its comune, population, estimated 65+ count, ageing
+  index, distance, review flags and notes
+- `output/towns.geojson`, `output/routes.geojson` — map data
+- `output/meta.json` — the study area's name and extent; the web map frames
+  itself from it, so the page hardcodes no region
+- `output/cycling_lanes/`, `output/public_transport/` — the overlays, split
+  into a grid of small files that the map fetches only for the area in view
+- `output/unroutable_towns.json` — settlements with no walkable route to any candidate
+- `output/inferred_stores.json` — every store placed from ISTAT's register,
+  with the settlement it was placed in and the comune's register and OSM counts
+- `output/results.json`, `output/summary.json` — the data behind the site's
+  *Explore data* and *Summary* pages
+- `docs/` — the published site: the map (`index.html`), a results summary
+  (`summary.html`) and a searchable table of every result (`explore.html`)
+
+### Configuration
+
+Everything lives in `food_desert/config.py`.
+
+| Setting | Purpose |
+|---|---|
+| `TARGET_LEVEL` / `TARGET_REGIONS` | Area to analyse — `"country"` (default) or `"multi_region"` |
+| `OSM_EXTRACT_NAME` | Geofabrik extract to read, e.g. `italy-latest` or `nord-est-latest` |
+| `DISTANCE_THRESHOLD_KM` | The "too far" cutoff — default 3 km |
+| `SETTLEMENT_TYPES` | Which ISTAT localities are analysed — default `(1,)`, towns and villages; add `2` for hamlets |
+| `SETTLEMENT_SHOP_BUFFER_M` | A shop this close to a settlement's outline serves it — default 200 m |
+| `INFERRED_STORE_MIN_SHARE` | How likely a village must be to hold a register store before one is placed there — default 0.5 |
+| `DISTANCE_REVIEW_THRESHOLD_KM` | Results at/beyond this are flagged for review — default 10 km |
+| `ROUTING_CANDIDATE_COUNT` | How many nearby shops to route to before choosing — default 5 |
+| `BORDER_BUFFER_KM` | How far past the study area to look for shops |
+| `EXCLUDE_UNMATCHED_TOWNS` | Drop towns with no ISTAT match (i.e. outside the study area) |
+| `COMUNE_MERGERS` | Comuni merged since the ISTAT reference date; their figures are summed |
+| `OSMIUM_NODE_INDEX` | Node coordinates on disk (`sparse_file_array`) or in RAM (`flex_mem`) |
+| `MAP_TILE_SIZE_DEG` | Grid cell size for the web map's overlays |
+| `OSM_PBF_PATHS` | Extracts to read shops from; a list, so neighbouring countries can be added |
+| `FORCE_REFRESH_CACHE` | Rebuild everything from scratch |
+
+Caches are named after the study area (`data/cache/towns_country-it.gpkg`), so
+changing `TARGET_LEVEL` can never silently reuse another area's data.
+
+## Challenges and engineering solutions
 
 The project began as a study of three north-eastern regions. Taking it to the
 whole of Italy broke almost every assumption the first version made. These are
@@ -223,7 +410,7 @@ relation ID rather than its name. The index of node coordinates that this
 needs (about 4.5 GB) is kept on disk rather than in RAM, so the analysis runs
 alongside the routing server. The OSRM walking graph for Italy took about two
 hours to build and peaked at 11.9 GB of RAM, which fits once Docker's WSL 2
-memory limit is raised (see *Requirements*).
+memory limit is raised (see [Requirements](#requirements)).
 
 ### 2. Matching every comune to ISTAT's population data
 
@@ -333,239 +520,7 @@ load and draw at once.
 - **Links go straight to a place.** Rows in the summary and the data table link
   to a place on the map, zoomed to show its whole route.
 
----
-
-## Data sources
-
-| Source | Used for | Licence |
-|---|---|---|
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) (Geofabrik extract) | Town boundaries, shop locations, cycle lanes, transport routes | ODbL |
-| [ISTAT](https://www.istat.it) — 2024 regional census | Population, age structure, ageing index | CC BY 4.0 |
-| [ISTAT POSAS](https://demo.istat.it/app/?i=POS&l=it) — population at 1 January 2025 | The same census count, for Liguria (see below) | CC BY 4.0 |
-| [ISTAT ASIA](https://esploradati.istat.it/databrowser/) — local units by comune, 2023 | Stores OSM has not mapped (see above) | CC BY 4.0 |
-| [ISTAT Basi territoriali](https://www.istat.it/notizia/basi-territoriali-e-variabili-censuarie/) — localities, census 2021 | Settlement outlines and populations | CC BY 4.0 |
-| [OSRM](http://project-osrm.org/) | Pedestrian routing | BSD |
-
-ISTAT files are read **exactly as published**, with no manual editing —
-download the same files (`python tools/download_istat.py`) and you regenerate
-the same numbers.
-
-Towns are matched to ISTAT by the six-digit ISTAT code that Italian comuni
-carry in OpenStreetMap (`ref:ISTAT`), not by name: Italy has several pairs of
-comuni sharing a name (two Castro, two Livo, two Samone…), and a name-only
-match would give one of each pair the other's population.
-
-**Liguria.** ISTAT's published Liguria workbook contains no per-comune tables —
-only province-level summaries. Liguria's 234 comuni are therefore taken from
-POSAS, ISTAT's own publication of the same census count by comune and age.
-Checked against the workbooks across every one of the 7,358 comuni both cover,
-the two agree exactly on population and on residents aged 65+.
-
-All geographic data is read from a local OpenStreetMap extract rather than live
-web queries, so it does not depend on the availability of free public query
-servers. The only network calls are a Nominatim request for the outline of the
-study area itself, and — only if a comune's boundary is broken in the extract —
-one per such comune, looked up by its OSM relation ID.
-
----
-
-## Run it yourself
-
-### Requirements
-
-For the whole of Italy (the default). The three-region study needs roughly a
-quarter of each figure.
-
-- **Python 3.9+**
-- **Docker** (runs the OSRM routing engine). On Windows, Docker Desktop with
-  the WSL 2 backend.
-- **~40 GB free disk space** — the 2.1 GB Italy extract, 10–15 GB of OSRM
-  routing graph plus temporary files while it builds, and up to ~9 GB of
-  temporary node index in `%TEMP%` during a run (removed automatically)
-- **16 GB of RAM**, with the WSL 2 memory limit raised (below)
-- Windows, macOS or Linux. Commands below use PowerShell; adjust for your shell.
-
-> ### ⚠️ Memory: the OSRM build is the constraint
->
-> **Building the routing graph** for Italy's foot network is the heaviest step
-> by far — an estimated 8–12 GB at its peak. On Windows, WSL 2 caps Docker at
-> **half your RAM** by default, which is not enough on a 16 GB machine. Raise
-> it by creating `%UserProfile%\.wslconfig`:
->
-> ```ini
-> [wsl2]
-> memory=12GB
-> swap=16GB
-> ```
->
-> then run `wsl --shutdown` and restart Docker Desktop. Close the browser and
-> other large applications while the graph builds. If `osrm-extract` still
-> exits with code 137 (killed for memory), see *Slimming the extract* below.
->
-> **Reading the extract in Python** needs an index of every node coordinate —
-> around 4.5 GB for Italy. By default it is kept in a temporary file on disk
-> rather than in RAM (`OSMIUM_NODE_INDEX = "sparse_file_array"`), so the
-> analysis runs comfortably alongside the OSRM server. On a machine with RAM to
-> spare, `"flex_mem"` is faster.
-
-
-### Quick start
-
-```powershell
-git clone https://github.com/RiccardoPerana/Food-Deserts-Analysis-Italy.git
-cd Food-Deserts-Analysis-Italy
-
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-**1. Download the map extract** (2.1 GB) into `data/osm/`:
-
-```powershell
-New-Item -ItemType Directory -Force data\osm | Out-Null
-Invoke-WebRequest -Uri "https://download.geofabrik.de/europe/italy-latest.osm.pbf" `
-                  -OutFile "data\osm\italy-latest.osm.pbf"
-```
-
-**2. Download the ISTAT data** into `data/istat/`, then check it loads:
-
-```powershell
-python tools\download_istat.py
-python run.py istat      # expect 7,894 comuni, 107 provinces, 58,943,464 residents
-```
-
-That fetches the 21 regional workbooks of the
-[2024 census release](https://www.istat.it/comunicato-territoriale/censimento-della-popolazione-dati-regionali-anno-2024/)
-(Trentino-Alto Adige is published as two), the two POSAS files that cover
-Liguria, ISTAT's shop register, and the settlement outlines (`Localita_21.zip`,
-255 MB). Workbook filenames do not matter — every
-`.xlsx` in the folder is loaded. ISTAT publishes 7,896 comuni; two mergers
-since then (`COMUNE_MERGERS`) bring that to 7,894.
-
-ISTAT's data API is slow and sometimes stops answering for a while; if the
-shop register fails, re-run the script later — it skips what is already there.
-
-**3. Build the routing graph** (one-off; roughly 1–2 hours for Italy). From the
-project root:
-
-```powershell
-docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-extract -p /opt/foot.lua /data/italy-latest.osm.pbf
-docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-partition /data/italy-latest.osrm
-docker run -t -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend osrm-customize /data/italy-latest.osrm
-```
-
-**4. Start the routing server** in its own terminal, and leave it running:
-
-```powershell
-docker run -t -i -p 5000:5000 -v "${PWD}/data/osm:/data" ghcr.io/project-osrm/osrm-backend `
-    osrm-routed --algorithm mld /data/italy-latest.osrm
-```
-
-**5. Check everything is in place, then run:**
-
-```powershell
-python run.py paths      # every input should read OK
-python run.py all        # analyse, build map layers, publish
-python run.py serve      # preview at http://localhost:8000
-```
-
-The first `analyze` builds the town and supermarket caches from the extract —
-roughly 30–45 minutes for Italy, most of it assembling ~7,900 comune
-boundaries. Every run after that takes a few minutes. `layers` re-reads the
-extract each time (~10–20 minutes). The analysis checks at startup that the
-routing server is running *and* that it was built from an extract covering the
-study area, and stops with an explanation if not.
-
-#### Slimming the extract
-
-If the OSRM build runs out of memory, build it from a copy of the extract that
-keeps only what the foot profile can route over — roughly halving its size.
-This uses `osmium-tool` in a throwaway Debian container:
-
-```powershell
-docker run --rm -v "${PWD}/data/osm:/data" debian:bookworm-slim sh -c `
-  "apt-get update -qq && apt-get install -y -qq osmium-tool >/dev/null && osmium tags-filter /data/italy-latest.osm.pbf w/highway w/route=ferry w/railway=platform w/public_transport=platform w/man_made=pier w/amenity=parking,parking_entrance w/leisure=track -o /data/italy-routing.osm.pbf --overwrite"
-```
-
-Build the graph from `italy-routing.osm.pbf` instead (the files become
-`italy-routing.osrm.*`, so use that name in steps 3–4 and set
-`OSRM_DATASET_PATH` accordingly). Keep `italy-latest.osm.pbf` — the analysis
-itself still reads the full extract.
-
-#### Running the original three-region study
-
-Set `TARGET_LEVEL = "multi_region"` and `OSM_EXTRACT_NAME = "nord-est-latest"`
-in `food_desert/config.py`, download
-[nord-est-latest.osm.pbf](https://download.geofabrik.de/europe/italy/nord-est-latest.osm.pbf),
-and build the routing graph from it. Each study area keeps its own caches, so
-switching back and forth never loads the wrong one.
-
-
-### Commands
-
-| Command | What it does |
-|---|---|
-| `python run.py analyze` | Run the analysis → `output/` |
-| `python run.py layers` | Build cycle-lane and transport overlays |
-| `python run.py publish` | Copy results into `docs/data/` for the live demo |
-| `python run.py serve` | Preview the site — map, summary and data pages — exactly as it will be published |
-| `python run.py diagnose "Town Name"` | Spot-check one town against cached and live data (a six-digit ISTAT code picks one of several same-named towns) |
-| `python run.py paths` | Show resolved paths and verify inputs exist |
-| `python run.py istat` | Load the ISTAT data and report what was found, in seconds |
-| `python run.py all` | analyse → layers → publish |
-
-Publishing is deliberately separate from analysis, so an experimental run
-cannot silently become the live demo.
-
-
-### Output
-
-- `output/food_desert_towns.xlsx` — every underserved settlement, sorted by
-  vulnerability, with its comune, population, estimated 65+ count, ageing
-  index, distance, review flags and notes
-- `output/towns.geojson`, `output/routes.geojson` — map data
-- `output/meta.json` — the study area's name and extent; the web map frames
-  itself from it, so the page hardcodes no region
-- `output/cycling_lanes/`, `output/public_transport/` — the overlays, split
-  into a grid of small files that the map fetches only for the area in view
-- `output/unroutable_towns.json` — settlements with no walkable route to any candidate
-- `output/inferred_stores.json` — every store placed from ISTAT's register,
-  with the settlement it was placed in and the comune's register and OSM counts
-- `output/results.json`, `output/summary.json` — the data behind the site's
-  *Explore data* and *Summary* pages
-- `docs/` — the published site: the map (`index.html`), a results summary
-  (`summary.html`) and a searchable table of every result (`explore.html`)
-
-
-### Configuration
-
-Everything lives in `food_desert/config.py`.
-
-| Setting | Purpose |
-|---|---|
-| `TARGET_LEVEL` / `TARGET_REGIONS` | Area to analyse — `"country"` (default) or `"multi_region"` |
-| `OSM_EXTRACT_NAME` | Geofabrik extract to read, e.g. `italy-latest` or `nord-est-latest` |
-| `DISTANCE_THRESHOLD_KM` | The "too far" cutoff — default 3 km |
-| `SETTLEMENT_TYPES` | Which ISTAT localities are analysed — default `(1,)`, towns and villages; add `2` for hamlets |
-| `SETTLEMENT_SHOP_BUFFER_M` | A shop this close to a settlement's outline serves it — default 200 m |
-| `INFERRED_STORE_MIN_SHARE` | How likely a village must be to hold a register store before one is placed there — default 0.5 |
-| `DISTANCE_REVIEW_THRESHOLD_KM` | Results at/beyond this are flagged for review — default 10 km |
-| `ROUTING_CANDIDATE_COUNT` | How many nearby shops to route to before choosing — default 5 |
-| `BORDER_BUFFER_KM` | How far past the study area to look for shops |
-| `EXCLUDE_UNMATCHED_TOWNS` | Drop towns with no ISTAT match (i.e. outside the study area) |
-| `COMUNE_MERGERS` | Comuni merged since the ISTAT reference date; their figures are summed |
-| `OSMIUM_NODE_INDEX` | Node coordinates on disk (`sparse_file_array`) or in RAM (`flex_mem`) |
-| `MAP_TILE_SIZE_DEG` | Grid cell size for the web map's overlays |
-| `OSM_PBF_PATHS` | Extracts to read shops from; a list, so neighbouring countries can be added |
-| `FORCE_REFRESH_CACHE` | Rebuild everything from scratch |
-
-Caches are named after the study area (`data/cache/towns_country-it.gpkg`), so
-changing `TARGET_LEVEL` can never silently reuse another area's data.
-
----
-
-## Known limitations
+## Limitations
 
 - **The national border.** The Italy extract stops a short way past the
   border. A town on the edge whose nearest shop lies across it — in France,
@@ -597,22 +552,30 @@ changing `TARGET_LEVEL` can never silently reuse another area's data.
 - **Extra-urban public transport is absent** from the map. OpenStreetMap covers
   urban bus routes well and regional coach networks poorly; closing that gap
   means stitching together feeds from each regional operator.
-- **Data is a snapshot.** OpenStreetMap changes constantly. Re-download the
+- **Data is a snapshot.** The results use the OpenStreetMap extract of
+  23 September 2026, and OpenStreetMap changes constantly. Re-download the
   extract periodically.
 - **No automated pavement or cycle-lane check.** Rather than a pass/fail test on
   infrastructure quality, the map renders the cycle-lane layer over each town's
   route so it can be judged by eye.
 
----
+## Results and performance analysis
 
-## Licence
+### At a glance
 
-MIT — see [LICENSE](LICENSE). Map data © OpenStreetMap contributors (ODbL);
-population and business data © ISTAT (CC BY 4.0).
+| | |
+|---|---|
+| **958,755** residents | live in a town or village more than **3 km on foot** from the nearest supermarket or grocery store |
+| **5,016** settlements | 785 of them a comune's main town, 4,231 of them frazioni |
+| **260,902** aged 65+ | **27.2%** of those affected, against 24.7% for Italy as a whole (estimated) |
+| **21,708** analysed | every town and village ISTAT records, in all 7,894 comuni |
 
----
+<sub>Population figures are ISTAT's for 2024. Shops come from OpenStreetMap
+(extract of 23 September 2026), plus 3,494 stores that ISTAT's business
+register counts but OpenStreetMap does not map, placed in the settlements
+most likely to hold them — see [How it works](#how-it-works).</sub>
 
-## What it found
+### What it found
 
 **Nearly a million people** — 958,755 — live in one of 5,016 towns and villages
 whose nearest supermarket or grocery store is more than a 3 km walk away. Most
@@ -676,5 +639,42 @@ whole comune — only a handful of bakers and butchers.
 <p align="center">
   <img src="screenshots/03-summary.png"
        alt="The website's results summary: headline figures, what happened to every settlement, and the share of residents affected by region"
-       width="820">
+       width="900">
 </p>
+
+### The website
+
+The [live site](https://riccardoperana.github.io/Food-Deserts-Analysis-Italy/)
+has three pages, switched from the top-left corner of each:
+
+- **Map** — every underserved settlement: a dot when zoomed out, and zoomed in
+  a circle sized by type (a comune's main town, or a frazione above or below
+  100 residents). Click one to draw its walking route and see its figures.
+  Cycle lanes and public transport can be overlaid, to judge by eye whether any
+  safe infrastructure follows the route.
+- **Summary** — the headline figures, what happened to every settlement, the
+  regional picture, how far people have to walk, and the most affected places.
+- **Explore data** — every result in a searchable, sortable table, filterable by
+  region, province and type, with a CSV of the current view and the full
+  spreadsheet to download. Each row links to its place on the map.
+
+<p align="center">
+  <img src="screenshots/02-settlement-detail.png"
+       alt="The map zoomed in on San Giovanni, a frazione of Ostellato, with its 9.3 km walking route to the nearest supermarket and a popup with its figures"
+       width="900">
+</p>
+<p align="center">
+  <em>San Giovanni, a frazione of Ostellato (Ferrara): 719 residents, 9.3 km on
+  foot from the nearest supermarket.</em>
+</p>
+
+<p align="center">
+  <img src="screenshots/04-explore-data.png"
+       alt="The Explore data page: a filterable table of every underserved settlement"
+       width="900">
+</p>
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Map data © OpenStreetMap contributors (ODbL);
+population and business data © ISTAT (CC BY 4.0).
