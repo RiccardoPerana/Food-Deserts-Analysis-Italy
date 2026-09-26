@@ -262,7 +262,7 @@ function table(headers, rows) {
     `<tr>${r.map((c, i) => `<td${headers[i][1] ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
-fetch("data/summary.json?_=" + Date.now())
+fetch("data/summary.json", { cache: "no-cache" })
   .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
   .then(render)
   .catch(err => {

@@ -64,12 +64,9 @@
     color: white;
     border-color: var(--accent);
   }
-  /* The status banner sits at the BOTTOM, not the top.
-     At the top it collided with the layer controls on narrow screens --
-     the controls are anchored top-right and the banner was centred, so
-     below roughly 700px wide they overlapped and the banner won.
-     Bottom-centre is clear of the controls at every width, and the
-     bottom offset keeps it above Leaflet's attribution line. */
+  /* The status banner sits bottom-centre, clear of the top-right layer
+     controls at every width; the bottom offset keeps it above Leaflet's
+     attribution line. */
   #status {
     position: absolute;
     bottom: 34px;
@@ -85,8 +82,8 @@
     line-height: 1.4;
     box-shadow: 0 2px 10px rgba(0,0,0,0.14);
     /* An explicit width: with only left:50%, its shrink-to-fit width is
-       capped at the half of the screen right of centre, which on a phone
-       squeezed it into a narrow three-line column. */
+       capped at the half of the screen right of centre -- a narrow column
+       on a phone. */
     width: max-content;
     max-width: min(420px, calc(100vw - 32px));
     text-align: center;
@@ -230,13 +227,15 @@
 // Pages serve docs/ as the web root, so "data/x.geojson" resolves correctly
 // in either environment with no switching.
 //
-// The ?_= cache-buster is not cosmetic: GitHub Pages sets long cache headers,
-// so without it a visitor who has seen the map before may keep getting the
-// previous data for hours after `run.py publish`.
-const CACHE_BUST = "?_=" + Date.now();
-const TOWNS_GEOJSON_URL  = "data/towns.geojson" + CACHE_BUST;
-const ROUTES_GEOJSON_URL = "data/routes.geojson" + CACHE_BUST;
-const META_URL           = "data/meta.json" + CACHE_BUST;
+// Every data request revalidates with the server (cache: "no-cache"): an
+// unchanged file comes back as a tiny 304 and is served from the browser
+// cache, a republished one is downloaded fresh. That keeps a returning
+// visitor current after `run.py publish` without re-downloading ~11 MB of
+// map data on every visit.
+const FRESH = { cache: "no-cache" };
+const TOWNS_GEOJSON_URL  = "data/towns.geojson";
+const ROUTES_GEOJSON_URL = "data/routes.geojson";
+const META_URL           = "data/meta.json";
 
 // ---------------------------------------------------------------------
 // MAP INITIALIZATION
@@ -304,9 +303,8 @@ function focusFromHash() {
 }
 window.addEventListener("hashchange", focusFromHash);
 
-// A visible status banner. Previously load failures went only to the browser
-// console, so a visitor hitting an empty or missing data folder just saw a
-// blank map with no indication anything had gone wrong.
+// A visible status banner, so a load failure (an empty or missing data
+// folder) is reported on screen rather than only in the browser console.
 const statusEl = document.getElementById('status');
 let statusTimer = null;
 
@@ -334,7 +332,7 @@ function setStatus(message, isError) {
 }
 
 function loadJSON(url, label) {
-  return fetch(url)
+  return fetch(url, FRESH)
     .then(r => {
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       return r.json();
@@ -370,7 +368,7 @@ document.getElementById("intro-close").addEventListener("click", () => {
   try { localStorage.setItem(INTRO_KEY, "1"); } catch (e) { /* no storage */ }
 });
 // The headline count comes from the published summary, when there is one.
-fetch("data/summary.json" + CACHE_BUST)
+fetch("data/summary.json", FRESH)
   .then(r => r.ok ? r.json() : null)
   .then(s => {
     if (!s) return;   // no summary published: the card keeps its sentence alone
@@ -444,10 +442,9 @@ document.getElementById('legend-rows').innerHTML = SIZE_CLASSES.map(c => {
 // ---------------------------------------------------------------------
 // STUDY AREA
 // ---------------------------------------------------------------------
-// Optional: data published before meta.json existed has none, in which case
-// the map fits itself to the towns instead (see below). Resolves to whether
-// the study area was applied.
-const studyAreaApplied = fetch(META_URL)
+// If meta.json cannot be loaded, the map fits itself to the towns instead
+// (see below). Resolves to whether the study area was applied.
+const studyAreaApplied = fetch(META_URL, FRESH)
   .then(r => r.ok ? r.json() : null)
   .then(meta => {
     if (!meta) return false;
@@ -459,9 +456,8 @@ const studyAreaApplied = fetch(META_URL)
   .catch(() => false);
 
 // A route and a settlement are matched on ISTAT's locality code: names repeat
-// across Italy (dozens of "San Giorgio"), codes do not. The comune code and
-// the name are fallbacks for data published before settlements were analysed.
-const townKey = props => props.settlement_id ?? props.istat_code ?? props.town_name ?? props.name;
+// across Italy (dozens of "San Giorgio"), codes do not.
+const townKey = props => props.settlement_id;
 
 // Settlement markers go on a canvas too: nationally there are thousands, and
 // one SVG element each makes panning crawl. Canvas markers stay clickable.
@@ -477,8 +473,7 @@ loadJSON(TOWNS_GEOJSON_URL, "towns.geojson")
       setStatus("No towns in the published dataset.", true);
       return;
     }
-    const unit = data.features[0].properties.settlement_id ? "settlements" : "comuni";
-    setStatus(`${data.features.length.toLocaleString()} underserved ${unit} — click a marker for details.`);
+    setStatus(`${data.features.length.toLocaleString()} underserved settlements — click a marker for details.`);
     // Largest size class first, so smaller circles are drawn on top and stay
     // clickable where they overlap a big one.
     const features = [...data.features].sort(
@@ -544,7 +539,7 @@ function gridOverlay({ dir, label, style, minZoom, button, onCellsAdded }) {
   let generation = 0;               // bumped by every refresh; see below
 
   function loadManifest() {
-    manifestRequest = manifestRequest || loadJSON(`data/${dir}/manifest.json${CACHE_BUST}`, `${label} index`)
+    manifestRequest = manifestRequest || loadJSON(`data/${dir}/manifest.json`, `${label} index`)
       .then(m => { manifest = m && { cellDeg: m.cell_deg, cells: new Set(m.cells) }; });
     return manifestRequest;
   }
@@ -562,7 +557,7 @@ function gridOverlay({ dir, label, style, minZoom, button, onCellsAdded }) {
 
   function loadCell(key) {
     if (!cells.has(key)) {
-      cells.set(key, loadJSON(`data/${dir}/${key}.geojson${CACHE_BUST}`, `${label} (cell ${key})`)
+      cells.set(key, loadJSON(`data/${dir}/${key}.geojson`, `${label} (cell ${key})`)
         .then(data => data && L.geoJSON(data, { ...LINE_OPTIONS, style })));
     }
     return cells.get(key);
@@ -690,9 +685,8 @@ function selectTown(feature, marker, fit = false) {
   restackLines();
 
   // "Main town of its comune" or "Frazione of <comune>", then where it is.
-  // Data published before settlements were analysed has neither field.
   const kind = props.is_main_town ? "Main town of its comune"
-    : props.comune ? `Frazione of ${esc(props.comune)}` : "";
+    : `Frazione of ${esc(props.comune)}`;
   const place = [props.province, props.region].filter(Boolean).map(esc).join(", ");
   const note = props.nearest_is_inferred
     ? `<div class="pop-note">This store is in ISTAT's business register but not on OpenStreetMap,

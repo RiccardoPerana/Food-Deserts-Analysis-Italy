@@ -251,7 +251,7 @@ $("prev").addEventListener("click", () => { page--; draw(); });
 $("next").addEventListener("click", () => { page++; draw(); });
 $("csv").addEventListener("click", downloadCsv);
 
-fetch("data/results.json?_=" + Date.now())
+fetch("data/results.json", { cache: "no-cache" })
   .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
   .then(data => {
     rows = data.map(r => ({ ...r, _search: fold(`${r.name} ${r.comune}`) }));
