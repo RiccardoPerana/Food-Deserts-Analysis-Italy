@@ -563,9 +563,6 @@ Everything lives in `food_desert/config.py`.
 Caches are named after the study area (`data/cache/towns_country-it.gpkg`), so
 changing `TARGET_LEVEL` can never silently reuse another area's data.
 
-Settings marked `# SCALE HOOK` are deliberate extension points, not dead code.
-Each states what work activating it requires.
-
 ---
 
 ## Known limitations
