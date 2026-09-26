@@ -5,11 +5,10 @@ check_config_refs.py
 Static check: verifies every `config.SOMETHING` referenced anywhere in the
 package actually exists in config.py.
 
-This exists because renaming a config setting is silently safe until runtime.
-A rename of REQUEST_PAUSE_SEC to NOMINATIM_PAUSE_SEC once got as far as a
-live run before failing -- on the first iteration of a loop that only starts
-after a multi-minute file read. Ten seconds of static checking would have
-caught it before the process even started.
+Renaming a config setting is silently safe until runtime, and the failure can
+surface a long way in: a stale reference inside a loop that only begins after a
+multi-minute file read will not raise until several minutes into a run. Ten
+seconds of static checking catches it before the process starts.
 
     python tools/check_config_refs.py
 

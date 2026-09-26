@@ -2,12 +2,12 @@
 """
 download_istat.py
 -----------------
-Downloads the ISTAT population data into data/istat/, exactly as published --
-the pipeline reads it unmodified.
+Downloads the ISTAT data into data/istat/, exactly as published -- the
+pipeline reads it unmodified.
 
     python tools/download_istat.py
 
-Two sources:
+Four sources:
 
   * The 21 regional census workbooks, "Censimento della popolazione: dati
     regionali, anno 2024", released 30 April 2026:
