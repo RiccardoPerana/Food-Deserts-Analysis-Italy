@@ -43,7 +43,6 @@ import zipfile
 from pathlib import Path
 
 import geopandas as gpd
-import pandas as pd
 import pyogrio
 from shapely.geometry import Point
 
@@ -91,18 +90,29 @@ def _read_localities(zip_path):
 
 def _scale_factors(settlements, totals, towns):
     """
-    Returns {istat_code: 2024 population / 2021 population} per current comune.
+    Returns (factors, overall): {istat_code: 2024 population / 2021
+    population} per current comune, and the same ratio for the study area as
+    a whole.
 
     The 2021 total of a current comune is the sum over every 2021 PRO_COM
     whose settlements mostly fall inside it -- which folds merged comuni
     together without a table of mergers.
+
+    `overall` is taken over the comuni that have both figures, never over
+    the whole file: the localities file covers all of Italy, so dividing the
+    study area's 2024 population by the national 2021 total would shrink
+    every fallback population in a regional run.
     """
     majority = (settlements.groupby("PRO_COM")["istat_code"]
                 .agg(lambda codes: codes.mode().iloc[0]))
     pop21 = (totals.assign(istat_code=totals["PRO_COM"].map(majority))
              .groupby("istat_code")["POP21"].sum())
     pop24 = towns.set_index("istat_code")["population"].astype("Float64")
-    return (pop24 / pop21.where(pop21 > 0)).to_dict()
+    factors = (pop24 / pop21.where(pop21 > 0)).to_dict()
+
+    paired = pop24[pop24.index.isin(pop21.index)].dropna()
+    overall = float(paired.sum()) / float(pop21[paired.index].sum())
+    return factors, overall
 
 
 def _build(towns):
@@ -139,11 +149,10 @@ def _build(towns):
 
     # A comune can end up with no 2021 total: when its only settlement is
     # filed by ISTAT under a neighbouring comune's PRO_COM, but lies inside
-    # this one's boundary today. Those settlements take the national
+    # this one's boundary today. Those settlements take the study area's
     # 2021-to-2024 change instead of being left without a population.
-    factors = _scale_factors(raw, totals, towns)
-    national = float(towns["population"].sum()) / float(totals["POP21"].sum())
-    factor = raw["istat_code"].map(factors).astype("Float64").fillna(national)
+    factors, overall = _scale_factors(raw, totals, towns)
+    factor = raw["istat_code"].map(factors).astype("Float64").fillna(overall)
     raw["population"] = (raw["POP21"] * factor).round().astype("Int64")
     raw["population_65plus"] = (
         raw["population"].astype("Float64") * raw["pct_65plus"].astype("Float64") / 100

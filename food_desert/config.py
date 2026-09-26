@@ -7,18 +7,6 @@ Change the AREA OF INTEREST block to move between a single province, several
 regions, and the whole country. Switching scope needs three things to agree:
 TARGET_LEVEL (below), the OSM extract (OSM_EXTRACT_NAME), and the OSRM routing
 graph built from that same extract. `python run.py paths` checks all three.
-
---- A NOTE ON "SCALE HOOK" MARKERS -------------------------------------------
-Settings tagged
-
-    # SCALE HOOK (...): ...
-
-are DELIBERATE extension points. Some are not read by any code path yet, which
-makes them look identical to accidental dead code in a diff or a static
-analysis pass. They are not dead code. Do not remove them during cleanup. Each
-tag states what the setting is for and what work is required to activate it.
-
-Anything NOT carrying that tag has no such protection.
 """
 
 import re
@@ -74,10 +62,8 @@ def _scope_slug():
     A short, filesystem-safe name for the configured study area, e.g.
     "country-it" or "multi-region-veneto-friuli-venezia-giulia-...".
 
-    Every cache file is named after it. Before this, the caches had fixed
-    names, so switching TARGET_LEVEL from three regions to the whole country
-    silently reloaded the three-region towns cache and analysed the wrong
-    area without a single warning.
+    Every cache file is named after it, so switching TARGET_LEVEL can never
+    load a cache built for a different area.
     """
     if TARGET_LEVEL == "country":
         parts = [COUNTRY_ISO]
@@ -98,12 +84,10 @@ STUDY_AREA_LABEL = (
     else TARGET_NAME
 )
 
-# How far beyond the study area's edge to search for supermarkets, in km.
-#
-# This is NOT a future feature -- it fixes a limitation that exists right
-# now: a town on the outer boundary whose nearest shop sits just across that
-# boundary would otherwise never see it, and would be wrongly reported as
-# underserved. Now applied in fetch_supermarkets.py.
+# How far beyond the study area's edge to search for supermarkets, in km. A
+# town on the outer boundary whose nearest shop sits just across it would
+# otherwise never see that shop, and would be wrongly reported as
+# underserved. Applied in fetch_supermarkets.py.
 #
 # NOTE: changing this value invalidates the supermarket cache. Delete
 # data/cache/supermarkets_<scope>.gpkg after adjusting it, or the cached clip
@@ -126,8 +110,8 @@ OSM_PBF_PATH = paths.OSM_DIR / f"{OSM_EXTRACT_NAME}.osm.pbf"
 # area (see routing.check_osrm_coverage).
 OSRM_DATASET_PATH = paths.OSM_DIR / f"{OSM_EXTRACT_NAME}.osrm"
 
-# SCALE HOOK (cross-border): the list of extracts to read supermarkets from.
-# Kept as a LIST so that neighbouring-country extracts (Switzerland, Austria,
+# The extracts to read supermarkets from. A list, so that neighbouring-country
+# extracts (Switzerland, Austria,
 # Slovenia, France) can be appended to close the cross-border gap in Known
 # Limitations without changing any code. The routing graph would need the same
 # extracts merged in to route to those shops.
@@ -164,10 +148,7 @@ OSMIUM_NODE_INDEX = "sparse_file_array"
 DISTANCE_THRESHOLD_KM = 3.0
 
 # A shop inside a settlement's ISTAT outline, or within this many METRES of
-# it, serves that settlement -- no routing needed.
-#
-# The comune-level analysis this replaced used 500 m around the boundary plus
-# 1.5 km around the centre. Both are far too generous for settlements:
+# it, serves that settlement -- no routing needed. Kept small on purpose:
 # villages can lie a kilometre apart, and a shop in the next one is exactly
 # what the routed distance is there to measure.
 SETTLEMENT_SHOP_BUFFER_M = 200
@@ -193,10 +174,8 @@ TOWN_BOUNDARY_SIMPLIFY_M = 10
 # review flag, not a rejection.
 DISTANCE_REVIEW_THRESHOLD_KM = 10.0
 
-# OSM shop tags that count as "supermarket or minimarket".
-SUPERMARKET_TAGS = {
-    "shop": ["supermarket", "convenience"]
-}
+# Values of the OSM `shop` tag that count as "supermarket or minimarket".
+SUPERMARKET_SHOP_TYPES = ("supermarket", "convenience")
 
 # ---------------------------------------------------------------------------
 # CACHING
@@ -338,8 +317,8 @@ COMUNE_MERGERS = {
 #
 # 65 is the standard pensionable-age cutoff and matches ISTAT's own "indice di
 # vecchiaia" numerator, so the figure is directly comparable to published
-# statistics rather than being a threshold invented here.
-VULNERABILITY_AGE_FIELD = "population_65plus"
+# statistics rather than being a threshold invented here. Computed in
+# pipeline.py from the population_65plus column.
 
 # ---------------------------------------------------------------------------
 # WEB MAP PAYLOAD SIZE
@@ -394,16 +373,15 @@ GEOJSON_TRANSIT_DIR = OUTPUT_DIR / "public_transport"
 # to open and how far it can be panned, so the page itself hardcodes no region.
 STUDY_AREA_META_PATH = OUTPUT_DIR / "meta.json"
 
-# Everything the published web map loads. `run.py publish` copies these into
-# docs/data/ from OUTPUT_DIR as an explicit, deliberate step -- so an
-# experimental run can never silently become your live demo.
-PUBLISHED_DATA_DIR = paths.DOCS_DATA_DIR
 # Data for the site's summary and explorer pages: every underserved settlement
 # (flagged ones included, as in the spreadsheet), and the run's headline
 # figures with a per-region breakdown.
 RESULTS_JSON_PATH = OUTPUT_DIR / "results.json"
 SUMMARY_JSON_PATH = OUTPUT_DIR / "summary.json"
 
+# Everything the published site loads. `run.py publish` copies these into
+# docs/data/ as an explicit, deliberate step -- so an experimental run can
+# never silently become your live demo.
 PUBLISHABLE_OUTPUTS = [
     GEOJSON_TOWNS_PATH,
     GEOJSON_ROUTES_PATH,
@@ -458,20 +436,17 @@ OSRM_BASE_URL = "http://localhost:5000"
 OSRM_PROFILE_WALK = "foot"
 OSRM_TIMEOUT_SEC = 15
 
-# NOTE: there is deliberately NO pause between OSRM requests. OSRM runs in a
-# local Docker container -- there is no third-party server to be polite to,
-# and a 2-second courtesy delay across ~1,000 towns was costing over half an
-# hour per run for no benefit whatsoever.
+# There is deliberately NO pause between OSRM requests: OSRM runs in a local
+# Docker container, so there is no third-party server to be polite to.
 
 # ---------------------------------------------------------------------------
 # NOMINATIM / OVERPASS
 # ---------------------------------------------------------------------------
-# Nominatim is now used for ONE thing: the outline of the study area itself
-# (a single request per region, or one for the whole country), cached on disk
-# by osmnx under data/cache/osmnx/. Town boundaries used to be geocoded one
-# request per town at Nominatim's mandatory 1 request/second -- over two hours
-# for Italy, and prone to matching a different town of the same name. They are
-# now assembled from the local .osm.pbf instead; see fetch_towns.py.
+# Nominatim supplies the outline of the study area itself (one request per
+# region, or one for the whole country), plus the occasional comune boundary
+# the extract cannot assemble, looked up by relation ID. Responses are cached
+# on disk by osmnx under data/cache/osmnx/. Town boundaries come from the local
+# .osm.pbf; see fetch_towns.py for why.
 
 # Overpass is used only by diagnostics.py, never by the analysis itself.
 # Public mirrors go through real periods of instability, so query_with_retry()

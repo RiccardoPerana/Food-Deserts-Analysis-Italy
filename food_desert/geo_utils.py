@@ -64,8 +64,8 @@ def km_to_degrees(km, latitude):
     by cos(latitude) as you move away from it.
 
     NOTE: this is only appropriate for drawing rough bounding boxes, which
-    is why the only remaining caller is the diagnostic script. Anything that
-    affects the actual results should project to METRIC_CRS instead.
+    is why its only caller is the diagnostic script. Anything that affects
+    the actual results should project to METRIC_CRS instead.
     """
     deg_lat = km / KM_PER_DEG_LAT
     deg_lon = km / (KM_PER_DEG_LAT * math.cos(math.radians(latitude)))
@@ -87,9 +87,16 @@ def _target_queries():
         # boundary relation, territorial waters included -- which keeps every
         # coastal town's centre point comfortably inside it.
         return [(config.COUNTRY_NAME, {"country": config.COUNTRY_NAME})]
+    if config.TARGET_LEVEL == "province":
+        # Structured as well: most Italian provinces share their name with
+        # their capital city, and a free-text "Padova, Italy" resolves to the
+        # comune. Provinces are OSM admin_level 6, which Nominatim calls a
+        # county.
+        return [(config.TARGET_NAME,
+                 {"county": config.TARGET_NAME, "country": config.COUNTRY_NAME})]
     if config.TARGET_LEVEL == "multi_region":
         names = config.TARGET_REGIONS
-    elif config.TARGET_LEVEL in ("region", "province"):
+    elif config.TARGET_LEVEL == "region":
         names = [config.TARGET_NAME]
     else:
         raise ValueError(
@@ -107,9 +114,10 @@ def get_target_polygons():
     The result is memoised, so the several modules that need it share a
     single set of network calls per run rather than each paying for its own.
 
-    Raises rather than returning an empty list, which would let
-    fetch_map_layers.py write empty overlays and exit successfully -- a
-    failure you would only discover by noticing a blank map.
+    Raises if ANY part of the area cannot be resolved. Carrying on without it
+    would analyse a smaller area than configured, or let fetch_map_layers.py
+    write empty overlays and exit successfully -- failures you would only
+    discover by noticing missing towns or a blank map.
     """
     global _TARGET_POLYGON_CACHE
     if _TARGET_POLYGON_CACHE is not None:
@@ -118,18 +126,19 @@ def get_target_polygons():
     queries = _target_queries()
     print(f"[INFO] Resolving target area polygons via Nominatim: "
           f"{[label for label, _ in queries]}")
-    polygons = []
+    polygons, failed = [], []
     for label, query in queries:
         try:
             gdf = ox.geocode_to_gdf(query)
             polygons.append((label, gdf.geometry.iloc[0]))
         except Exception as e:
-            print(f"[WARN] Could not geocode '{label}': {e}")
+            failed.append(f"{label} ({type(e).__name__}: {e})")
 
-    if not polygons:
+    if failed:
         raise RuntimeError(
-            "Could not resolve ANY target area polygon. Check your internet "
-            "connection and the names in config.TARGET_REGIONS / COUNTRY_NAME."
+            f"Could not resolve the target area polygon for: {'; '.join(failed)}. "
+            f"Check your internet connection and the names in "
+            f"config.TARGET_NAME / TARGET_REGIONS / COUNTRY_NAME."
         )
 
     _TARGET_POLYGON_CACHE = polygons

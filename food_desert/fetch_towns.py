@@ -14,18 +14,17 @@ with no network involved:
                            polygons; the node callback picks up the centre
                            nodes and every place node for the fallback
 
---- WHY NOT NOMINATIM ANY MORE -----------------------------------------------
-Boundary polygons used to come from osmnx/Nominatim, one request per town name
-at a mandatory 1 request/second. That was 30-60 minutes for three regions and
-over two hours for Italy -- and it returned whatever Nominatim ranked first
-for "<name>, Italy". Italy has dozens of comuni sharing a name across
-provinces (Calliano, Livo, Samone, Castro, Peglio, San Teodoro...), so at
-national scale a wrong-entity match stops being an occasional quirk and
-becomes a steady source of wrong boundaries.
+--- WHY NOT NOMINATIM ---------------------------------------------------------
+Geocoding each town through osmnx/Nominatim means one request per name at a
+mandatory 1 request/second -- over two hours for Italy -- and it returns
+whatever Nominatim ranks first for "<name>, Italy". Italy has dozens of comuni
+sharing a name across provinces (Calliano, Livo, Samone, Castro, Peglio, San
+Teodoro...), so name lookups hand out wrong boundaries.
 
-Assembling each boundary from its own relation removes both problems. Rows are
+Assembling each boundary from its own relation avoids both problems. Rows are
 keyed by OSM relation ID throughout, never by name, so two towns with the same
-name can no longer overwrite each other's polygon.
+name cannot overwrite each other's polygon. Nominatim is only asked, by
+relation ID, for the few boundaries libosmium cannot assemble.
 """
 
 import geopandas as gpd
@@ -95,7 +94,6 @@ class _AdminRelationCollector(osmium.SimpleHandler):
             "name": name,
             "osm_id": r.id,
             "istat_ref": istat_ref,
-            "province_name": config.TARGET_NAME if config.TARGET_LEVEL == "province" else None,
             "centre_ref": centre_ref,
         }
 
@@ -181,9 +179,9 @@ def _choose_centre(record, boundary, collector):
       2. otherwise a place node of the SAME NAME lying INSIDE the boundary;
       3. otherwise a point guaranteed to lie inside the boundary.
 
-    Step 2 used to be a bare name lookup across the whole extract. Place names
-    repeat constantly ("San Giorgio", "Villanova"), and with a national extract
-    that lookup would happily put a town's centre in a different region.
+    Step 2 requires the node to lie inside the boundary because place names
+    repeat constantly ("San Giorgio", "Villanova"): a bare name lookup across a
+    national extract would put a town's centre in a different region.
     """
     ref = record["centre_ref"]
     if ref is not None and ref in collector.node_locations:
@@ -288,18 +286,16 @@ def _simplify_boundaries(gdf):
 
 def _filter_to_target_regions(gdf):
     """
-    The extract includes some territory beyond the target area -- border
-    strips of neighbouring countries, San Marino and the Vatican for Italy;
-    bordering regions for a regional extract. This trims the towns down to
-    those whose centre point actually falls inside the target area.
+    The extract includes territory beyond the target area -- border strips of
+    neighbouring countries, San Marino and the Vatican for Italy; bordering
+    regions (or, for a single province, the rest of its region) for a
+    regional extract. This trims the towns down to those whose centre point
+    actually falls inside the target area.
 
     Called ONCE, before the result is cached. Running it again on cache load
     would re-geocode the target area on every run, to re-filter data that was
     already filtered before it was saved.
     """
-    if config.TARGET_LEVEL == "province":
-        return gdf  # single-province mode does not need this filter
-
     print("[INFO] Filtering towns to the target area "
           "(the local extract includes some bordering territory)...")
     target = get_combined_target_polygon()   # prepared -- see geo_utils
@@ -319,8 +315,7 @@ def _filter_to_target_regions(gdf):
 def build_towns_dataset():
     """
     Full assembly: boundaries plus label points.
-    Columns: name, osm_id, istat_ref, province_name, boundary (polygon),
-             center_point (Point)
+    Columns: name, osm_id, istat_ref, boundary (polygon), center_point (Point)
 
     The result is cached to config.TOWNS_CACHE_PATH so that a crash in a
     LATER pipeline step does not cost another full pass over the extract. Set

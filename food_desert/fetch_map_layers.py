@@ -191,13 +191,21 @@ def _write_chunked_layer(lines, out_dir, cell_deg, label, merge_overlaps=False):
           f"{largest / 2**20:.2f} MB)")
 
 
+# Keys that describe cycling infrastructure ON a road, as opposed to a way
+# that is itself a cycle path (highway=cycleway).
+CYCLEWAY_KEYS = ("cycleway", "cycleway:both", "cycleway:left", "cycleway:right")
+
+# Values of those keys that mean there is no lane on this road: "no"/"none"
+# say so outright, and "separate" means the lane is mapped as its own
+# highway=cycleway way -- which is drawn already, so drawing the road as
+# well would show the lane twice.
+NOT_A_LANE = {"no", "none", "separate"}
+
+
 def _is_cycleway(tags):
-    return (
-        tags.get("highway") == "cycleway"
-        or "cycleway" in tags
-        or "cycleway:left" in tags
-        or "cycleway:right" in tags
-    )
+    if tags.get("highway") == "cycleway":
+        return True
+    return any(tags.get(key, "no") not in NOT_A_LANE for key in CYCLEWAY_KEYS)
 
 
 class _RouteRelationCollector(osmium.SimpleHandler):

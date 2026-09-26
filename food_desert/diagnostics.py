@@ -3,9 +3,10 @@ diagnostics.py
 --------------
 DIAGNOSTIC MODULE -- spot-checks a specific town's supermarket data.
 
-For each town supplied this reports:
+For each town (comune) supplied this reports:
   1. Its centre point and boundary size (a sanity check on the location data)
-  2. Whether it appears in the final spreadsheet, if the analysis has run
+  2. Which of its settlements are in the final spreadsheet, if the analysis
+     has run
   3. What the CACHED supermarket dataset contains nearby
   4. What a LIVE Overpass query finds over the same area, as a second opinion
 
@@ -27,10 +28,16 @@ from . import config
 from .overpass_utils import query_with_retry
 from .geo_utils import km_to_degrees
 
-# Town names are now passed on the command line rather than edited into this
-# file:   python run.py diagnose "Torri di Quartesolo" "Arsie"
 CHECK_RADIUS_KM = 10        # radius for the cached-vs-live comparison
 TIGHT_RADIUS_KM = 3         # radius for the close-in raw element listing
+
+# Spreadsheet columns the cross-check reads (see export_spreadsheet.HEADERS).
+COL_COMUNE_CODE = "ISTAT Code (comune)"
+COL_COMUNE = "Comune"
+COL_SETTLEMENT = "Settlement"
+COL_DISTANCE = "Distance to Nearest Supermarket (km)"
+COL_SHOP = "Nearest Supermarket"
+COL_POPULATION = "Population (est.)"
 
 
 def _bbox_around(center, radius_km):
@@ -49,9 +56,8 @@ def _live_supermarket_query(center, radius_km):
     Runs one live Overpass query for supermarkets within radius_km of a point.
 
     Returns a list of (kind, name, has_coords) tuples, where kind is "NODE" or
-    "WAY". Ways without a computed centre are reported rather than dropped --
-    silently discarding them was the exact failure mode that motivated moving
-    the main pipeline off Overpass and onto the local extract.
+    "WAY". Ways without a computed centre are reported rather than dropped:
+    a silently missing shop is exactly the kind of gap this check looks for.
     """
     south, west, north, east = _bbox_around(center, radius_km)
     query = f"""
@@ -97,25 +103,36 @@ def check_town(row, supermarkets_cached):
     print(f"Bounding box : {boundary.bounds}")
 
     # --- Cross-check against the final spreadsheet, if it exists ------------
+    # The spreadsheet lists settlements, so a comune can appear several
+    # times (its main town and any underserved frazioni) or not at all.
     try:
-        df = pd.read_excel(config.SPREADSHEET_PATH, dtype={"ISTAT Code": str})
-        if istat_ref and "ISTAT Code" in df:
-            match = df[df["ISTAT Code"] == istat_ref]
-        else:
-            match = df[df["Town"] == name]
-        if not match.empty:
-            r = match.iloc[0]
-            print(f"\n[FINAL RESULTS] '{name}' IS flagged as underserved:")
-            print(f"   Distance to nearest supermarket: "
-                  f"{r['Distance to Nearest Supermarket (km)']} km")
-            print(f"   Nearest supermarket            : {r['Nearest Supermarket']}")
-            print(f"   Population                     : {r['Population']}")
-        else:
-            print(f"\n[FINAL RESULTS] '{name}' is NOT in the spreadsheet -- it either "
-                  f"has its own supermarket, or sits within the distance threshold.")
+        df = pd.read_excel(config.SPREADSHEET_PATH, dtype={COL_COMUNE_CODE: str})
     except FileNotFoundError:
         print(f"\n[FINAL RESULTS] {config.SPREADSHEET_PATH} not found -- "
-              f"run pipeline.py first if you want this cross-check.")
+              f"run `python run.py analyze` first if you want this cross-check.")
+        df = None
+    if df is not None:
+        missing = [c for c in (COL_COMUNE_CODE, COL_COMUNE, COL_SETTLEMENT,
+                               COL_DISTANCE, COL_SHOP, COL_POPULATION)
+                   if c not in df]
+        if missing:
+            print(f"\n[FINAL RESULTS] {config.SPREADSHEET_PATH.name} has no "
+                  f"{missing} column(s) -- it was written by a different version "
+                  f"of the pipeline. Re-run `python run.py analyze`.")
+        else:
+            match = (df[df[COL_COMUNE_CODE] == istat_ref] if istat_ref
+                     else df[df[COL_COMUNE] == name])
+            if match.empty:
+                print(f"\n[FINAL RESULTS] No settlement of '{name}' is in the "
+                      f"spreadsheet -- each has a shop of its own or one within "
+                      f"{config.DISTANCE_THRESHOLD_KM}km on foot.")
+            else:
+                print(f"\n[FINAL RESULTS] {len(match)} settlement(s) of '{name}' "
+                      f"are underserved:")
+                for _, r in match.iterrows():
+                    print(f"   {str(r[COL_SETTLEMENT])[:30]:32} "
+                          f"{r[COL_DISTANCE]:>6} km to {r[COL_SHOP]}  "
+                          f"(pop. {r[COL_POPULATION]})")
 
     # --- Close-in raw element listing --------------------------------------
     print(f"\n[TIGHT LIVE CHECK] Raw OSM elements within {TIGHT_RADIUS_KM}km...")

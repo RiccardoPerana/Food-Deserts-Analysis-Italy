@@ -430,11 +430,15 @@ def _write_summary(results, settlements, inferred_audit, counts):
     ]
     by_region.sort(key=lambda v: v["pct_affected"], reverse=True)
 
+    # The first band has no lower bound: every result is past the threshold,
+    # but distance_km is rounded, so a 3.004 km walk is stored as 3.0 and
+    # would fall into no band at all under a strict "> 3".
     bands = []
     edges = DISTANCE_BANDS + [None]
     for low, high in zip(edges, edges[1:]):
         inside = [r for r in confirmed
-                  if r["distance_km"] > low and (high is None or r["distance_km"] <= high)]
+                  if (low == edges[0] or r["distance_km"] > low)
+                  and (high is None or r["distance_km"] <= high)]
         if high is not None or inside:
             bands.append({"label": f"{low}–{high} km" if high else f"over {low} km",
                           "settlements": len(inside),
