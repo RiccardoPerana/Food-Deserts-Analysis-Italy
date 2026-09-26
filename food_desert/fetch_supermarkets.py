@@ -35,7 +35,7 @@ from . import config
 from .geo_utils import METRIC_CRS, WGS84
 from .osm_reader import apply_with_locations
 
-SHOP_TAGS = set(config.SUPERMARKET_TAGS["shop"])
+SHOP_TAGS = set(config.SUPERMARKET_SHOP_TYPES)
 
 
 class _SupermarketHandler(osmium.SimpleHandler):
@@ -71,9 +71,8 @@ class _SupermarketHandler(osmium.SimpleHandler):
         coords = [(n.lon, n.lat) for n in w.nodes if n.location.valid()]
         if not coords:
             return
-        # Simple average of the outline's points -- matches what Overpass's
-        # "out center;" produced before, and is well inside the precision this
-        # analysis needs.
+        # Simple average of the outline's points -- well inside the precision
+        # this analysis needs.
         avg_lon = sum(c[0] for c in coords) / len(coords)
         avg_lat = sum(c[1] for c in coords) / len(coords)
         self.records.append({

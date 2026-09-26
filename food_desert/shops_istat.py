@@ -7,16 +7,14 @@ like any other shop (see infer_register_stores).
 
 --- WHY ---------------------------------------------------------------------
 The "has its own shop" test trusts OSM to be complete, and nationally it is
-not. The first all-Italy run put Turi (13,000 residents), Poggiomarino
-(22,600) and Naro at the top of the rankings: none has a single supermarket
-in OSM, while ISTAT's register lists 34 non-specialised stores in Poggiomarino
-alone. Of the 1,649 towns that run confirmed, 951 -- 79% of the residents
-affected -- had at least one such store in the register.
+not: Turi (13,000 residents), Poggiomarino (22,600) and Naro have no
+supermarket in OSM, while ISTAT's register lists 34 non-specialised stores in
+Poggiomarino alone.
 
-The register only counts stores per comune. Dropping every comune with a
-registered store (the first fix) made the results two analyses in one: OSM
-locations where OSM was complete, comune-level counts where it was not.
-Placing the missing stores in settlements puts both on the same footing.
+The register only counts stores per comune. Simply dropping every comune with
+a registered store would make the results two analyses in one: OSM locations
+where OSM is complete, comune-level counts where it is not. Placing the
+missing stores in settlements puts both on the same footing.
 
 --- THE FILE ----------------------------------------------------------------
 An SDMX CSV exactly as served by esploradati.istat.it (dataflow

@@ -21,15 +21,15 @@ cloned to or invoked from. The working directory stops mattering entirely.
 
 from pathlib import Path
 
-# This file lives at <PROJECT_ROOT>/food_desert/paths.py, so the root is two
-# levels up from the file itself. If this module is ever moved, update the
-# .parents index to match -- it is the one hardcoded assumption here.
+# This file lives at <PROJECT_ROOT>/food_desert/paths.py, so the root is the
+# parent of the package directory. If this module is ever moved, update that
+# -- it is the one hardcoded assumption here.
 PACKAGE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_DIR.parent
 
 # --- Inputs ----------------------------------------------------------------
 DATA_DIR = PROJECT_ROOT / "data"
-ISTAT_DIR = DATA_DIR / "istat"      # committed: ISTAT workbooks, part of the method
+ISTAT_DIR = DATA_DIR / "istat"      # committed, except the 255 MB localities zip
 OSM_DIR = DATA_DIR / "osm"          # gitignored: multi-GB extracts + OSRM graph
 CACHE_DIR = DATA_DIR / "cache"      # gitignored: regenerated on demand
 
@@ -44,9 +44,6 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 # --- Published site (committed -- this is what GitHub Pages serves) --------
 DOCS_DIR = PROJECT_ROOT / "docs"
 DOCS_DATA_DIR = DOCS_DIR / "data"
-
-# --- Tools -----------------------------------------------------------------
-TOOLS_DIR = PROJECT_ROOT / "tools"
 
 
 def ensure_directories():

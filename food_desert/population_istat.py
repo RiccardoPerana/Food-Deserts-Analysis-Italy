@@ -1,7 +1,8 @@
 """
 population_istat.py
 -------------------
-Reads official ISTAT demographic data and matches it to towns by name.
+Reads official ISTAT demographic data and matches it to towns by ISTAT code,
+falling back to the name only where OSM carries no usable code.
 
 --- HOW IT READS THE SOURCE DATA ---------------------------------------------
 ISTAT's published .xlsx workbooks are read unmodified, exactly as downloaded.
@@ -37,8 +38,8 @@ Italian comuni in OSM carry the same code as a `ref:ISTAT` tag, so towns are
 matched on the code first. Names are only a fallback, for relations whose tag
 is missing or stale, and the fallback refuses to guess: a name shared by two
 or more still-unmatched ISTAT rows is left unmatched rather than assigned to
-whichever row happened to be read first. At three regions a name collision was
-a curiosity; nationally it would hand one town another town's population.
+whichever row happened to be read first -- otherwise one town could be handed
+another town's population.
 
 NOTE ON TRENTINO-ALTO ADIGE: ISTAT publishes this region as two separate
 workbooks, one per autonomous province (Trento and Bolzano/Bozen). Both are
@@ -103,9 +104,7 @@ def _read_sheet(path, sheet_name, first_data_row):
 
     keep_default_na=False is not optional. By default pandas reads the TEXT
     "None" as a missing value -- and None is a real comune, in the province of
-    Turin. The previous version stopped at the first row with a missing name,
-    so it silently dropped None and every Piedmontese comune after it
-    alphabetically: 304 of 1,180, with no warning at all.
+    Turin, which would otherwise read as a blank row.
     """
     df = pd.read_excel(path, sheet_name=sheet_name, header=None,
                        skiprows=first_data_row - 1, engine="openpyxl",

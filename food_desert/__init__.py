@@ -1,7 +1,7 @@
 """
-Food Desert Analysis -- northeastern Italy.
+Food Desert Analysis -- Italy.
 
-Identifies municipalities with no supermarket of their own that are also
+Identifies towns and villages with no supermarket of their own that are also
 further than a configurable routed walking distance from the nearest one.
 
 Entry point is run.py at the repository root, not this package directly:

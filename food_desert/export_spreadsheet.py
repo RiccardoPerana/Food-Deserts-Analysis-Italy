@@ -6,9 +6,6 @@ Exports the final results list to a clean, formatted .xlsx spreadsheet.
 Rows at or beyond config.DISTANCE_REVIEW_THRESHOLD_KM are highlighted in
 amber and marked in a dedicated column: these are results worth a manual
 look rather than being silently trusted.
-
-Rows are built once and reused for both writing and column-width measurement,
-rather than being reconstructed per column.
 """
 
 from openpyxl import Workbook

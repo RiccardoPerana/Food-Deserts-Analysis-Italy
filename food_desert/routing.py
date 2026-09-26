@@ -29,8 +29,7 @@ not running -- start it in its own terminal tab and leave it there.
 3. THERE IS NO DELAY BETWEEN OSRM REQUESTS.
    Courtesy delays belong on third-party services. OSRM runs in a local Docker
    container, so a pause between calls protects nothing and costs roughly half
-   an hour across a full run. Nominatim, which does enforce 1 request/second,
-   is rate-limited in fetch_towns.py instead.
+   an hour across a full run.
 """
 
 import requests
